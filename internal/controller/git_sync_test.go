@@ -167,7 +167,7 @@ func TestBuildGitSyncSidecar(t *testing.T) {
 		syncInterval: 10 * time.Minute,
 		secretName:   "git-creds",
 	}
-	sysCfg := systemConfig{systemImage: "ghcr.io/kubeopencode/kubeopencode:latest"}
+	sysCfg := systemConfig{systemImage: "ghcr.io/cjblackout/kubeopencode:latest"}
 
 	sidecar := buildGitSyncSidecar(gm, "git-context-0", 0, sysCfg)
 

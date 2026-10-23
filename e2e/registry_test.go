@@ -29,7 +29,7 @@ var _ = Describe("Registry E2E Tests", Label(LabelRegistry), func() {
 					Images: []kubeopenv1alpha1.RegistryImage{
 						{
 							Name:  "test-image",
-							Image: "ghcr.io/kubeopencode/kubeopencode-agent-devbox:dev",
+							Image: "ghcr.io/cjblackout/kubeopencode-agent-devbox:dev",
 							Metadata: kubeopenv1alpha1.ImageMetadata{
 								Description: "E2E test image",
 								Category:    "test",

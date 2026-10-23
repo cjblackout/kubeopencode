@@ -13,7 +13,7 @@ spec:
   templateRef:
     name: team-base
   profile: "Development agent with Docker-in-Docker support (privileged mode)"
-  executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox-dind:dev
+  executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox-dind:dev
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
   port: 4096

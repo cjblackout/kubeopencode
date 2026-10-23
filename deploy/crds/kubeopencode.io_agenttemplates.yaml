@@ -64,12 +64,12 @@ spec:
                 description: |-
                   AgentImage specifies the OpenCode init container image.
                   This image contains the OpenCode binary that gets copied to /tools volume.
-                  If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest".
+                  If not specified, defaults to "ghcr.io/cjblackout/kubeopencode-agent-opencode:latest".
                 type: string
               attachImage:
                 description: |-
                   AttachImage specifies the lightweight image used for --attach Pods.
-                  If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-attach:latest".
+                  If not specified, defaults to "ghcr.io/cjblackout/kubeopencode-agent-attach:latest".
                 type: string
               caBundle:
                 description: CABundle configures custom CA certificates for TLS verification.
@@ -472,7 +472,7 @@ spec:
               executorImage:
                 description: |-
                   ExecutorImage specifies the main worker container image for task execution.
-                  If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest".
+                  If not specified, defaults to "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest".
                 type: string
               extraPorts:
                 description: |-

@@ -83,7 +83,7 @@ var _ = Describe("RegistryController", func() {
 					Images: []kubeopenv1alpha1.RegistryImage{
 						{
 							Name:  "go-dev",
-							Image: "ghcr.io/kubeopencode/test-image:latest",
+							Image: "ghcr.io/cjblackout/test-image:latest",
 							Metadata: kubeopenv1alpha1.ImageMetadata{
 								Description: "Go development image",
 								Category:    "backend",
@@ -271,7 +271,7 @@ var _ = Describe("RegistryController", func() {
 					Images: []kubeopenv1alpha1.RegistryImage{
 						{
 							Name:  "valid-image",
-							Image: "ghcr.io/kubeopencode/test:latest",
+							Image: "ghcr.io/cjblackout/test:latest",
 						},
 						{
 							Name:  "invalid-image",
@@ -335,7 +335,7 @@ var _ = Describe("RegistryController", func() {
 					Images: []kubeopenv1alpha1.RegistryImage{
 						{
 							Name:  "valid-image",
-							Image: "ghcr.io/kubeopencode/test:latest",
+							Image: "ghcr.io/cjblackout/test:latest",
 						},
 					},
 					Skills: []kubeopenv1alpha1.RegistrySkill{

@@ -2947,7 +2947,7 @@ var _ = Describe("TaskController", func() {
 					Namespace: taskNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
