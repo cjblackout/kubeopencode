@@ -362,3 +362,98 @@ New templates under `charts/kubeopencode/templates/supervisor/`, all gated by
   git today).
 - Where the log retention lives if a longer history than the ring buffer is wanted
   (currently: none, by design, because logs can contain sensitive data).
+
+## 3. Separate container runtime for Agent pods and Task pods
+
+Status: specified, not started. Estimated effort: 1-1.5 working days.
+
+### 3.1 Goal
+
+The container runtime (Kubernetes `RuntimeClass`, for example `gvisor`, `kata`, `runc`)
+can be configured separately for the two kinds of pods KubeOpenCode creates, and on both
+CRDs:
+
+- the **Agent server pod** (the persistent opencode server, created from the Agent), and
+- the **Task pod** (the short-lived `opencode run --attach` pod, or the whole run in
+  Pod mode), which a Task can additionally override for itself.
+
+### 3.2 Current behaviour
+
+- `Agent.spec.podSpec.runtimeClassName` is the only runtime setting. It is applied to
+  **both** the Agent server Deployment (`internal/controller/server_builder.go`) and the
+  Task pods of that Agent (`internal/controller/pod_builder.go`), merged from the
+  AgentTemplate by `template_merge.go` (`firstNonNilPtr`).
+- `Task.spec` has no pod or runtime settings at all.
+- Consequence: a sandboxed server (for example gVisor, where `apt-get` as root is safe) forces
+  the same runtime on the attach pods, which need no sandbox, and a Task cannot ask for a
+  stronger or weaker runtime than its Agent.
+
+### 3.3 API changes
+
+`AgentSpec` (and `AgentTemplateSpec`, with the same merge rules):
+
+```yaml
+spec:
+  podSpec:                       # unchanged: applies to the server pod, and is the
+    runtimeClassName: gvisor     # fallback for Task pods when taskPodSpec sets none
+  taskPodSpec:                   # NEW, optional: overrides for the Task pods of this Agent
+    runtimeClassName: ""         # "" (explicit empty) = cluster default runtime, absent = inherit
+    # further fields can follow the same shape later (scheduling, resources); in this
+    # change only runtimeClassName is introduced
+```
+
+`TaskSpec`:
+
+```yaml
+spec:
+  runtimeClassName: kata         # NEW, optional: runtime of this Task's pod
+```
+
+Resolution order for a Task pod: `Task.spec.runtimeClassName` > `Agent.spec.taskPodSpec.runtimeClassName`
+(after template merge) > `Agent.spec.podSpec.runtimeClassName` > unset (cluster default).
+The server pod uses `Agent.spec.podSpec.runtimeClassName` as today, so existing manifests
+behave exactly as before (backward compatible: no new field means no change).
+
+An **empty string** means "use the cluster default runtime" (no `runtimeClassName` on the
+pod) and must be distinguishable from "not set" (pointer semantics), so a Task can opt out
+of the Agent's runtime.
+
+### 3.4 Controller changes
+
+- `pod_builder.go`: compute the effective runtime class with the resolution order above and
+  set `PodSpec.RuntimeClassName` (nil for the empty string).
+- `server_builder.go`: unchanged apart from reading the field through the same helper.
+- `template_merge.go`: merge `taskPodSpec.runtimeClassName` like the other scalar pointer
+  fields (Agent over template).
+- CRD regeneration (`make manifests`), deepcopy, and the chart CRDs (`charts/kubeopencode/crds`)
+  are part of the change; the homelab `crds` app picks them up through the new tag.
+
+### 3.5 Validation and safety
+
+- The controller does not verify that the `RuntimeClass` exists; the scheduler reports the
+  failure on the pod. The Task status gets a clear condition when pod creation fails with a
+  runtime error (`RuntimeClass "x" not found`), instead of staying silent.
+- An optional chart setting `controller.allowedRuntimeClasses` (list) restricts what a
+  **Task** may request (empty = no restriction); a Task asking for another class is rejected
+  at reconcile time with a `Failed` condition. This keeps Task authors from choosing a
+  weaker runtime than the cluster policy allows. Agents are configured by operators and are
+  not restricted by this list.
+- No change to the privilege boundary: choosing a runtime class does not grant any
+  Kubernetes API rights.
+
+### 3.6 Tests
+
+- Unit tests for the resolution order (all combinations including the explicit empty
+  string), template merge, and the pod/server builders.
+- envtest: a Task overriding the runtime; a Task rejected by `allowedRuntimeClasses`.
+- CRD/openapi check that old manifests without the new fields still validate and render
+  identical pods (golden comparison against the current output).
+- Live (homelab): server pod stays on `gvisor` while a Task pod runs with the default
+  runtime on the same Agent; verify with `kubectl get pod -o jsonpath='{.spec.runtimeClassName}'`.
+
+### 3.7 Rollout
+
+1. Types, CRDs, resolution helper and builders with tests.
+2. Chart value `controller.allowedRuntimeClasses` and docs.
+3. Build, bump the homelab pins, optionally set `taskPodSpec` for the agents (the homelab
+   currently needs gVisor for the servers; the attach pods could use the default runtime).
