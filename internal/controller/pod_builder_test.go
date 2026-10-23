@@ -79,11 +79,11 @@ func TestInferImagePullPolicy(t *testing.T) {
 		image string
 		want  corev1.PullPolicy
 	}{
-		{"ghcr.io/kubeopencode/agent:latest", corev1.PullAlways},
-		{"ghcr.io/kubeopencode/agent", corev1.PullAlways},
-		{"ghcr.io/kubeopencode/agent:v0.0.18", corev1.PullIfNotPresent},
-		{"ghcr.io/kubeopencode/agent:1.3.13", corev1.PullIfNotPresent},
-		{"ghcr.io/kubeopencode/agent@sha256:abc123", corev1.PullIfNotPresent},
+		{"ghcr.io/cjblackout/agent:latest", corev1.PullAlways},
+		{"ghcr.io/cjblackout/agent", corev1.PullAlways},
+		{"ghcr.io/cjblackout/agent:v0.0.18", corev1.PullIfNotPresent},
+		{"ghcr.io/cjblackout/agent:1.3.13", corev1.PullIfNotPresent},
+		{"ghcr.io/cjblackout/agent@sha256:abc123", corev1.PullIfNotPresent},
 		{"registry.example.com:5000/image:latest", corev1.PullAlways},
 		{"registry.example.com:5000/image", corev1.PullAlways},
 		{"registry.example.com:5000/image:v1.0", corev1.PullIfNotPresent},

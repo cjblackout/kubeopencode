@@ -6,7 +6,7 @@
 controller:
   # Container image for kubeopencode (unified image with controller, git-init)
   image:
-    repository: ghcr.io/kubeopencode/kubeopencode
+    repository: ghcr.io/cjblackout/kubeopencode
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
@@ -57,8 +57,8 @@ controller:
 # and reference it in Agent.spec.serviceAccountName (required field).
 # NOTE: Agent images are configured in Agent CRDs, not in this Helm chart.
 # The two-container pattern uses:
-#   - agentImage: OpenCode init container (default: ghcr.io/kubeopencode/kubeopencode-agent-opencode)
-#   - executorImage: Worker container (default: ghcr.io/kubeopencode/kubeopencode-agent-devbox)
+#   - agentImage: OpenCode init container (default: ghcr.io/cjblackout/kubeopencode-agent-opencode)
+#   - executorImage: Worker container (default: ghcr.io/cjblackout/kubeopencode-agent-devbox)
 agent:
   # Default image settings (used for local development with Kind)
   image:
@@ -83,7 +83,7 @@ server:
 
   # Container image for the server (uses same image as controller)
   image:
-    repository: ghcr.io/kubeopencode/kubeopencode
+    repository: ghcr.io/cjblackout/kubeopencode
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""

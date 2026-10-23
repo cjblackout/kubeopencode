@@ -17,7 +17,7 @@ This Helm chart deploys KubeOpenCode, a Kubernetes-native system for executing A
 kubectl create namespace kubeopencode-system
 
 # Install from OCI registry
-helm install kubeopencode oci://ghcr.io/kubeopencode/helm-charts/kubeopencode \
+helm install kubeopencode oci://ghcr.io/cjblackout/helm-charts/kubeopencode \
   --namespace kubeopencode-system
 
 # Or install from local chart (for development)
@@ -32,7 +32,7 @@ helm install kubeopencode ./charts/kubeopencode \
 cat > my-values.yaml <<EOF
 controller:
   image:
-    repository: ghcr.io/kubeopencode/kubeopencode
+    repository: ghcr.io/cjblackout/kubeopencode
     tag: v0.0.26
 
   resources:
@@ -56,7 +56,7 @@ server:
 EOF
 
 # Install the chart
-helm install kubeopencode oci://ghcr.io/kubeopencode/helm-charts/kubeopencode \
+helm install kubeopencode oci://ghcr.io/cjblackout/helm-charts/kubeopencode \
   --namespace kubeopencode-system \
   --values my-values.yaml
 ```
@@ -91,7 +91,7 @@ The following table lists the configurable parameters of the KubeOpenCode chart 
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `controller.image.repository` | Controller image repository | `ghcr.io/kubeopencode/kubeopencode` |
+| `controller.image.repository` | Controller image repository | `ghcr.io/cjblackout/kubeopencode` |
 | `controller.image.tag` | Controller image tag | `""` (uses chart appVersion) |
 | `controller.image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `controller.replicas` | Number of controller replicas | `1` |
@@ -120,8 +120,8 @@ The following table lists the configurable parameters of the KubeOpenCode chart 
 ### Agent Configuration
 
 Agent images are configured in Agent CRDs, not in this Helm chart. The two-container pattern uses:
-- `agentImage`: OpenCode init container (default: `ghcr.io/kubeopencode/kubeopencode-agent-opencode`)
-- `executorImage`: Worker container (default: `ghcr.io/kubeopencode/kubeopencode-agent-devbox`)
+- `agentImage`: OpenCode init container (default: `ghcr.io/cjblackout/kubeopencode-agent-opencode`)
+- `executorImage`: Worker container (default: `ghcr.io/cjblackout/kubeopencode-agent-devbox`)
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -161,8 +161,8 @@ metadata:
   name: default
   namespace: kubeopencode-system
 spec:
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
-  executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
+  agentImage: ghcr.io/cjblackout/kubeopencode-agent-opencode:latest
+  executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
   credentials:

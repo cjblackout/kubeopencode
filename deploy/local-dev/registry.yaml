@@ -17,7 +17,7 @@ spec:
   # Executor images — public images used by the local-dev Agents
   images:
     - name: devbox
-      image: "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest"
+      image: "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest"
       metadata:
         description: "General-purpose development environment with Go, Node, Python, and common CLI tools"
         category: executor
@@ -26,7 +26,7 @@ spec:
         baseImage: "ubuntu:22.04"
         maintainer: "kubeopencode-team"
     - name: opencode
-      image: "ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest"
+      image: "ghcr.io/cjblackout/kubeopencode-agent-opencode:latest"
       metadata:
         description: "OpenCode AI coding agent init container"
         category: agent

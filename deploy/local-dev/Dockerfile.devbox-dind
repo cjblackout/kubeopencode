@@ -4,7 +4,7 @@
 # Extends devbox with Docker daemon and a lazy-init wrapper.
 # See website/docs/use-cases/docker-in-docker.md for details.
 #
-FROM ghcr.io/kubeopencode/kubeopencode-agent-devbox:dev
+FROM ghcr.io/cjblackout/kubeopencode-agent-devbox:dev
 
 USER root
 

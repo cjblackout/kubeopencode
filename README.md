@@ -32,7 +32,7 @@
 ```bash
 kubectl create namespace kubeopencode-system
 
-helm install kubeopencode oci://ghcr.io/kubeopencode/helm-charts/kubeopencode \
+helm install kubeopencode oci://ghcr.io/cjblackout/helm-charts/kubeopencode \
   --namespace kubeopencode-system \
   --set server.enabled=true
 ```

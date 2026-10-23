@@ -11,7 +11,7 @@ spec:
   templateRef:
     name: team-base
   profile: "Team shared agent"
-  executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:dev
+  executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox:dev
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
   port: 4096

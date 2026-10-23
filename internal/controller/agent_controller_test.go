@@ -33,7 +33,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -107,7 +107,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -170,7 +170,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -226,7 +226,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -307,7 +307,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -379,7 +379,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -425,7 +425,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -457,7 +457,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -566,7 +566,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -671,7 +671,7 @@ var _ = Describe("AgentController", func() {
 					},
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -745,7 +745,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -791,7 +791,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -866,7 +866,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -928,7 +928,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -993,7 +993,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -1030,7 +1030,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
@@ -1091,7 +1091,7 @@ var _ = Describe("AgentController", func() {
 					Namespace: agentNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					ExecutorImage:      "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest",
+					ExecutorImage:      "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest",
 					WorkspaceDir:       "/workspace",
 					ServiceAccountName: "test-agent",
 					Port:               4096,
