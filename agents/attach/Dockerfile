@@ -13,6 +13,10 @@
 # - devbox: ~1GB (Go, Node, Python, cloud CLIs, dev tools)
 # - attach: ~150MB (Debian slim + OpenCode binary)
 #
+ARG OPENCODE_IMAGE=ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
+
+FROM ${OPENCODE_IMAGE} AS opencode-src
+
 FROM debian:bookworm-20260316-slim
 
 # CA certificates for HTTPS connections to OpenCode server and AI APIs
@@ -22,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy OpenCode binary from the opencode agent image
 # Both images use Debian, so glibc binary is compatible
-COPY --from=ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest /opencode /usr/local/bin/opencode
+COPY --from=opencode-src /opencode /usr/local/bin/opencode
 
 # Create workspace directory for task.md mount
 # This matches the pattern used in devbox and other executor images
