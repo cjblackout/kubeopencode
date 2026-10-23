@@ -242,3 +242,123 @@ Estimated effort: 2–3 days implementation plus 1 day for the live test and har
   git-init into an ephemeral volume).
 - Retention: whether finished worktrees should also expire after N days even if the
   Task object is kept (currently: only on Task deletion, plus orphan GC).
+
+## 2. Supervisor deployment and UI page
+
+Status: specified, not started. The supervisor itself (REST API, OAuth flow, removal of
+code-server from the ai-server image, cutover) is specified in the homelab repository,
+`ROADMAP.md`, section "Supervisor: REST-driven session supervisor". This section covers
+what belongs to this fork: the Helm deployment and the UI page. Estimated effort:
+6-8 working days (chart 3-4, UI and server 3-4).
+
+### 2.1 Goal
+
+KubeOpenCode ships a **supervisor** Deployment (Claude Code sessions per project) that is
+configured entirely through Helm values, and a **Supervisor** page in the UI (left
+navigation) that shows the sessions per project, their logs, and an OAuth button for
+the Claude login.
+
+### 2.2 Helm chart
+
+New templates under `charts/kubeopencode/templates/supervisor/`, all gated by
+`supervisor.enabled` (default `false`):
+
+- **Workload**: a single-replica StatefulSet (stable volume names, `Recreate`-like
+  semantics, no rolling overlap on the RWO volumes), container image
+  `supervisor.image` (the image is built by the homelab repository, the chart only
+  references it by value), `runtimeClassName` configurable (`supervisor.runtimeClassName`),
+  `tolerations`, `affinity`, `nodeSelector`, `resources`, `terminationGracePeriodSeconds`
+  (sessions are drained gracefully).
+- **Volumes**: `supervisor.persistence.home` (Claude credentials, transcripts, supervisor
+  config; default 50Gi) and `supervisor.persistence.workspace` (project clones under
+  `/workspace/sessions/<project>`; default 50Gi), each with `existingClaim` support so the
+  current `ai-server-home` / `ai-server-workspace` volumes can be adopted.
+  `supervisor.extraVolumes` / `extraVolumeMounts` carry the shared tools image volume
+  (`/opt/tools`) and anything else.
+- **Projects** (initial seed, runtime changes go through the API):
+
+  ```yaml
+  supervisor:
+    projects:
+      - name: homelab
+        repository: https://github.com/cjblackout/homelab.git
+        ref: main
+        sessionId: 10000000-0000-4000-8000-000000000001
+        remoteControlName: ai-server-homelab
+        memory: |                      # content of the project CLAUDE.md, or memoryFrom: {configMapKeyRef: ...}
+          ...
+        claudeArgs: ["--dangerously-skip-permissions"]
+  ```
+
+- **Credentials**: `supervisor.env` / `envFrom` and `supervisor.secrets` (GitHub write
+  token, GitLab token, SSH keys with `defaultMode`, kubeconfig) are plain references to
+  existing Secrets; the chart never creates secret material. The API token Secret
+  (`supervisor.api.tokenSecretRef`) is generated once when absent (lookup + keep).
+- **Access**: ServiceAccount plus optional Role/RoleBinding lists (`supervisor.rbac.rules`)
+  so the sessions keep their namespaced kubectl rights; `automountServiceAccountToken`
+  configurable. A NetworkPolicy (Kubernetes or Cilium, selectable) admits ingress to the
+  API port only from the KubeOpenCode server pod; egress is left to the cluster's own
+  policies and extendable through `supervisor.networkPolicy.extraEgress`.
+- **Service**: ClusterIP for the API (default 8090), not exposed through any Ingress.
+- **Probes**: liveness/readiness on `/healthz`.
+- **Homelab overlay**: anything specific to the homelab stays in the homelab repository
+  next to the Argo application (ExternalSecrets for the tokens, Cilium egress rules,
+  Kata/`/dev/shm` anti-affinity, git-sync sidecars for the read-only checkouts that
+  agent-run and agents consume), applied on top of the chart values.
+- **Tests**: `helm lint`, `helm template` golden files for the default and a full
+  values set, a chart unit test (helm-unittest or kubeconform) in CI; an upgrade check that
+  disabling the supervisor removes only its objects.
+
+### 2.3 Server (Go)
+
+- New handlers under `internal/server/handlers/supervisor*.go` that proxy to the
+  supervisor API with the shared bearer token: `GET /api/v1/supervisor/projects`,
+  `GET .../projects/{name}`, `POST .../projects/{name}/start|stop|restart`,
+  `GET .../projects/{name}/logs` (+ SSE stream passthrough),
+  `GET /api/v1/supervisor/auth/status`, `POST .../auth/login`,
+  `POST .../auth/login/{id}/code`, `GET .../auth/login/{id}`.
+- Authorization: the existing server middleware stays the gate (in the homelab,
+  Authelia admins only at the edge); mutating calls additionally require the server's
+  admin role when its own auth is enabled.
+- Streaming: SSE is forwarded without buffering and with the request context so a closed
+  browser tab closes the upstream stream; per-user concurrent stream limit.
+- The supervisor URL and token come from the chart (`SUPERVISOR_URL`, token file); when
+  `supervisor.enabled` is false the endpoints answer 404 and the UI hides the page.
+
+### 2.4 UI (React)
+
+- **Navigation**: a new left-nav item "Supervisor" (route `/supervisor`), shown only when
+  the server reports the feature enabled (`GET /api/v1/config`).
+- **Page layout**: a toggle (segmented control / tabs) at the top lists the projects
+  (`homelab`, `nested-operator`, `kubeopencode`, ...) and switches the whole page between
+  them; the selection is kept in the URL (`?project=`) and local storage.
+- **Panels** for the selected project:
+  - status card (status, uptime, restarts, last crash, transcript, readiness) with
+    Start / Stop / Restart buttons (confirmation for Stop and Restart);
+  - **Logs**: live stream (SSE) with follow/pause, a tail length selector, search/filter,
+    ANSI colours rendered (or stripped on toggle), download of the buffered text.
+- **OAuth**: an account banner ("Signed in as ..." or "Not signed in") from
+  `auth/status`; the button "Sign in with Claude" calls `auth/login`, shows the returned
+  URL (open in a new tab) and a code field; submitting the code calls `auth/login/{id}/code`
+  and polls the result; errors show the sanitized supervisor output. Only one login at a time.
+- Reuse the existing list/detail page components, the log viewer used by Task detail
+  pages if suitable, and the i18n setup; add dark-mode-safe styling like the other pages.
+- **Tests**: Vitest component tests with the existing mocks (`ui/src/mocks`), a Go handler
+  test with a fake supervisor server (auth, proxying, SSE closing), and a page smoke test.
+
+### 2.5 Rollout
+
+1. Chart templates and values with a fake supervisor image (kind e2e), behind `supervisor.enabled`.
+2. Server handlers and the UI page against the real supervisor API from the homelab roadmap
+   (needs its Part A and B).
+3. Homelab: deploy next to the existing `ai-server` pod using adopted volumes only after the
+   cutover steps in the homelab roadmap.
+
+### 2.6 Open questions
+
+- StatefulSet versus Deployment with `Recreate` for the single-replica supervisor.
+- Whether the per-project memory file (project `CLAUDE.md`) is stored in values, in a
+  ConfigMap per project, or edited through the API and persisted (the homelab keeps them in
+  git today).
+- Where the log retention lives if a longer history than the ring buffer is wanted
+  (currently: none, by design, because logs can contain sensitive data).
