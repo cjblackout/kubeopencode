@@ -207,9 +207,9 @@ patch the plugin to read the bank from a marker file in the session directory
 ### 1.9 Banks policy (operations)
 
 Hindsight creates a bank on the first write for an unknown bank ID. The set of banks
-is meant to stay at three (`nested-operator`, `homelab`, `hlrs`). The controller
+is kept small and deliberate (homelab: `nested-operator`, `homelab`, `hlrs`, `kubeopencode`). The controller
 rejects `bankId` values that are not in an optional `Agent.spec.worktrees.allowedBankIds`
-list (empty list = no restriction); the homelab sets it to those three.
+list (empty list = no restriction); the homelab sets it to those four.
 
 ### 1.10 Tests
 
