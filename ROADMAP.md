@@ -457,3 +457,14 @@ of the Agent's runtime.
 2. Chart value `controller.allowedRuntimeClasses` and docs.
 3. Build, bump the homelab pins, optionally set `taskPodSpec` for the agents (the homelab
    currently needs gVisor for the servers; the attach pods could use the default runtime).
+
+## 4. Vikunja integration: link, steer, write back
+
+Controller-side parts of the "Vikunja task events reach their assignees" design in the homelab repo's ROADMAP.md (the `vikunja-bridge` service may live here next to the supervisor chart; decision open). Vikunja is the work tracker; KubeOpenCode Tasks are the units of work it drives.
+
+- **Link:** Task annotation `vikunja.rish-home.de/task-id` (and optional `vikunja.rish-home.de/project-id`). The controller keeps no Vikunja state; the bridge resolves task id to Task.
+- **Steer a running Task:** `kubeopencode steer <task> "<text>"` and the controller/bridge call `POST /session/<status.session.id>/prompt_async` on the agent server pod (port 4096). Verified on opencode 1.19.4: a message sent while the session is busy is queued and picked up at the next step; the run is not killed. If the session is idle the message starts a new turn; if the Task is finished, a new Task with the same description plus the update is created.
+- **Create from assignment:** a Vikunja task assigned to an agent's bot user and without a live Task becomes a Task (agent chosen by the bot user, description = task description, annotation set). RBAC: create/get Tasks in the agents namespace only.
+- **Write back:** Task phase transitions (`Running`, `Completed`, `Failed`, stall) become a Vikunja comment plus a label (`in-progress`, `review`, `failed`) through the agent's own API token; the supervisor closes the task after verifying.
+- **Safety:** only allowlisted Vikunja authors can cause a delivery; Vikunja text is data, delivered as a plain labelled turn; events authored by the receiving bot are dropped.
+- **Effort:** 2 to 3 days on top of the bridge (annotation, steer command and endpoint, Task creation, write-back).
