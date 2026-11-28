@@ -7,7 +7,8 @@
 #   agent-run-api:  worker role boot on /healthz, agy, git, curl, gcc, make,
 #                   pkg-config
 #   new:            the role dispatcher (bogus role -> exit 2), agent-run,
-#                   ttyd (version + listen-and-serve)
+#                   opencode (KA-16: bundled engine CLI), ttyd (version +
+#                   listen-and-serve)
 # Mounted read-only into the container -- deliberately NOT COPY'd into the
 # image (an extra COPY/RUN layer would be another full-image copy on the
 # runners' vfs storage driver).
@@ -136,6 +137,7 @@ check_version agy /usr/local/libexec/agy
 # agent-run comes with the image (workers reach jobs).
 # kubeadp-agent orchestrator --help must print its usage and exit 0.
 check_version agent-run
+check_version opencode
 check kubeadp-agent-orchestrator-help 'kubeadp-agent orchestrator --help'
 
 # --- worker role boot check ----------------------------------

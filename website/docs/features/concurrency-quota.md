@@ -11,7 +11,6 @@ metadata:
   name: rate-limited-agent
 spec:
   profile: "Rate-limited agent for API-quota-constrained backends"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -34,7 +33,6 @@ metadata:
   name: rate-limited-agent
 spec:
   profile: "Rate-limited agent with sliding window quota"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

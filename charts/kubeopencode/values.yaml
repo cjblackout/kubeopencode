@@ -56,8 +56,9 @@ controller:
 # Users must create their own ServiceAccount and RBAC in each namespace where tasks run,
 # and reference it in Agent.spec.serviceAccountName (required field).
 # NOTE: Agent images are configured in Agent CRDs, not in this Helm chart.
-# The two-container pattern uses:
-#   - agentImage: OpenCode init container (default: ghcr.io/cjblackout/kubeopencode-agent-opencode)
+# The server container runs the kubeadp-agent image (bundles kubeadp-agent,
+# agent-run and the opencode CLI); an explicit executorImage provisions /tools:
+#   - kubeadpImage: server container / /tools provisioner (default: ghcr.io/cjblackout/kubeopencode/kubeadp-agent)
 #   - executorImage: Worker container (default: ghcr.io/cjblackout/kubeopencode-agent-devbox)
 agent:
   # Default image settings (used for local development with Kind)

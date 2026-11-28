@@ -157,7 +157,6 @@ metadata:
   name: dind-agent
 spec:
   profile: "Agent with Docker-in-Docker support via Sysbox"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: your-registry/devbox-dind:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -206,7 +205,6 @@ metadata:
   name: dind-privileged-agent
 spec:
   profile: "Agent with privileged DinD (dev/test only)"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: your-registry/devbox-dind:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -281,7 +279,6 @@ metadata:
   name: dind-rootless-agent
 spec:
   profile: "Agent with rootless DinD"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: your-registry/devbox-dind-rootless:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

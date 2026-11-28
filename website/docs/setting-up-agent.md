@@ -113,57 +113,47 @@ For full configuration reference, see the [OpenCode Config documentation](https:
 
 ## Step 2: Choose Your Images
 
-kubeadp uses a **two-container pattern**:
+kubeadp uses a **single-server pattern**:
 
 | Container | Field | Role |
 |-----------|-------|------|
-| **Init Container** | `agentImage` | Contains the OpenCode CLI binary; copies it to a shared `/tools` volume at startup |
-| **Worker Container** | `executorImage` | Your development environment — runs the AI agent using `/tools/opencode` |
+| **Server Container** | `executorImage` (default: `kubeadpImage`) | Runs `kubeadp-agent worker`. Defaults to the `kubeadp-agent` image, which bundles the `kubeadp-agent` binary, `agent-run` and the `opencode` CLI under `/usr/local/bin`. |
+| **Kubeadp Init Container** | `kubeadpImage` (only when explicit `executorImage`) | Copies `kubeadp-agent`, `agent-run` and `opencode` to the shared `/tools` volume so a custom executor image can run the worker. |
 
-:::info How the two-container pattern works
-At pod startup, the init container copies the OpenCode binary from `agentImage` to the shared `/tools` volume. The worker container (`executorImage`) then uses `/tools/opencode` to run the AI agent. This separation means you can update OpenCode independently from your development environment.
+:::info How the single-server pattern works
+By default the Agent Deployment runs the `kubeadp-agent` image directly: no init container is needed because that image already contains the `kubeadp-agent` binary and the `opencode` CLI. When you set an explicit `executorImage` (your own development environment), a `kubeadp-init` container copies the three binaries to `/tools` and the worker runs from `/tools/kubeadp-agent`.
 :::
 
 ### Available Images
 
 | Image | Type | Description |
 |-------|------|-------------|
-| `opencode` | Init Container | OpenCode CLI binary |
+| `kubeadp-agent` | Server | Runs `kubeadp-agent worker`; bundles `kubeadp-agent`, `agent-run`, `opencode` (see `docker/kubeadp-agent/`) |
 | `devbox` | Worker (Executor) | Universal development environment with Go, Node.js, Python, kubectl, helm |
-| `attach` | none (deprecated) | Formerly the image of agentRef Task Pods; they now run `kubeopencode task-submit` from the system image |
 | `echo` | Testing | Minimal Alpine image for E2E testing |
 
 ### Default Images
 
 If you don't specify images, kubeadp uses these defaults:
 
-- **OpenCode init**: `ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest`
-- **Devbox executor**: `ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest`
-- **Attach**: `ghcr.io/kubeopencode/kubeopencode-agent-attach:latest`
+- **Server**: `ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64`
+- **Devbox executor**: `ghcr.io/cjblackout/kubeopencode-agent-devbox:latest`
 
-For most users, the defaults work out of the box — you don't need to set `agentImage` or `executorImage`.
+For most users, the defaults work out of the box — you don't need to set `kubeadpImage` or `executorImage`.
 
 ### Image Resolution
 
 When configuring an Agent, the controller resolves images as follows:
 
-| Configuration | Init Container | Worker Container | Task Pod (agentRef) |
-|--------------|----------------|------------------|---------------------|
-| All three images set | `agentImage` | `executorImage` | `attachImage` |
-| `agentImage` + `executorImage` | `agentImage` | `executorImage` | Default attach image |
-| Only `agentImage` set (legacy) | Default OpenCode image | `agentImage` | Default attach image |
-| Neither set | Default OpenCode image | Default devbox image | Default attach image |
+| Configuration | Server Container | Init Container |
+|--------------|------------------|----------------|
+| Only `kubeadpImage` set | `kubeadpImage` (runs `kubeadp-agent worker`) | None |
+| Explicit `executorImage` set | `executorImage` (runs `/tools/kubeadp-agent worker`) | `kubeadpImage` (copies binaries to `/tools`) |
+| Neither set | Default kubeadp-agent image | None |
 
-### Attach Image
+### Deprecated Fields
 
-The `attachImage` field is deprecated and no longer used: Task Pods that reference an Agent run `kubeopencode task-submit` from the KubeOpenCode system image and submit a job to the Agent's kubeadp-agent worker. The field is still accepted for compatibility:
-
-```yaml
-spec:
-  attachImage: ghcr.io/kubeopencode/kubeopencode-agent-attach:latest
-```
-
-If not specified, the default attach image is used.
+`agentImage` and `attachImage` are deprecated and **ignored**: Task Pods that reference an Agent run `kubeopencode task-submit` from the KubeOpenCode system image and submit a job to the Agent's kubeadp-agent worker. The fields are still accepted for compatibility.
 
 ### System Containers and Extra Environment Variables
 
@@ -458,7 +448,7 @@ spec:
         name: ai-credentials
 
   # Step 2: Images (optional — defaults work for most cases)
-  # agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
+  # kubeadpImage: ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64
   # executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
 
   # Step 3: Workspace
@@ -509,7 +499,6 @@ metadata:
   name: team-base
   namespace: my-team
 spec:
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

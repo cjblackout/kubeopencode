@@ -39,13 +39,14 @@ var (
 	testNS    string
 	echoImage string
 
-	// agentImage is the OpenCode init container image used to copy the opencode
-	// binary to /tools. All E2E Agent/AgentTemplate specs must set AgentImage
-	// to this value to ensure the correct :dev-tagged image is used in Kind.
-	agentImage string
+	// kubeadpImage is the kubeadp-agent image whose kubeadp-init container
+	// provisions /tools with the kubeadp-agent, agent-run and opencode binaries.
+	// All E2E Agent/AgentTemplate specs must set KubeadpImage to this value so
+	// the correct :dev-tagged image is used in Kind.
+	kubeadpImage string
 
-	// OpenCode test configuration (for LabelOpenCode tests)
-	opencodeImage string // OpenCode agent image (init container)
+	// opencodeImage is the executor image used by the real-OpenCode e2e tests.
+	opencodeImage string
 )
 
 const (
@@ -61,11 +62,9 @@ const (
 	// Default echo agent image (uses :dev tag to get IfNotPresent pull policy in Kind)
 	defaultEchoImage = "ghcr.io/cjblackout/kubeopencode-agent-echo:dev"
 
-	// Default OpenCode agent image / init container (uses :dev tag to get IfNotPresent pull policy in Kind)
-	defaultAgentImage = "ghcr.io/cjblackout/kubeopencode-agent-opencode:dev"
-
-	// Default OpenCode agent image (init container that copies opencode binary)
-	defaultOpenCodeImage = "ghcr.io/cjblackout/kubeopencode-agent-opencode:dev"
+	// Default kubeadp-agent image / init container (uses :dev tag to get
+	// IfNotPresent pull policy in Kind)
+	defaultKubeadpImage = "ghcr.io/cjblackout/kubeopencode/kubeadp-agent:dev"
 
 	// Test ServiceAccount name for e2e tests
 	testServiceAccount = "kubeopencode-e2e-agent"
@@ -108,10 +107,10 @@ var _ = BeforeSuite(func() {
 		echoImage = defaultEchoImage
 	}
 
-	// Get agent image (init container) from env or use default
-	agentImage = os.Getenv("E2E_AGENT_IMAGE")
-	if agentImage == "" {
-		agentImage = defaultAgentImage
+	// Get kubeadp-agent image (init container) from env or use default
+	kubeadpImage = os.Getenv("E2E_KUBEADP_IMAGE")
+	if kubeadpImage == "" {
+		kubeadpImage = defaultKubeadpImage
 	}
 
 	By("Connecting to Kubernetes cluster")
@@ -187,12 +186,15 @@ var _ = BeforeSuite(func() {
 	}, timeout, interval).Should(BeTrue(), "Controller should be running")
 
 	// Setup OpenCode test configuration
+	// opencodeImage is the executor image used by the real-OpenCode e2e tests
+	// (it carries the deps opencode serve needs, and is pulled off the worker
+	// state root / PATH in the same way).
 	opencodeImage = os.Getenv("E2E_OPENCODE_IMAGE")
 	if opencodeImage == "" {
-		opencodeImage = defaultOpenCodeImage
+		opencodeImage = defaultKubeadpImage
 	}
 
-	GinkgoWriter.Printf("E2E test setup complete. Namespace: %s, Echo Image: %s, Agent Image: %s, OpenCode Image: %s\n", testNS, echoImage, agentImage, opencodeImage)
+	GinkgoWriter.Printf("E2E test setup complete. Namespace: %s, Echo Image: %s, Kubeadp Image: %s, OpenCode Image: %s\n", testNS, echoImage, kubeadpImage, opencodeImage)
 })
 
 var _ = AfterSuite(func() {

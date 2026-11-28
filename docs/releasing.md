@@ -9,9 +9,8 @@ A kubeadp release produces the following artifacts:
 | Artifact | Registry | Example |
 |----------|----------|---------|
 | Controller image | `ghcr.io/kubeopencode/kubeopencode` | `:v0.1.0` |
-| Agent OpenCode image | `ghcr.io/kubeopencode/kubeopencode-agent-opencode` | `:v0.1.0` |
+| kubeadp-agent server image | `ghcr.io/cjblackout/kubeopencode/kubeadp-agent` | `:2026.11.64` |
 | Agent Devbox image | `ghcr.io/kubeopencode/kubeopencode-agent-devbox` | `:v0.1.0` |
-| Agent Attach image | `ghcr.io/kubeopencode/kubeopencode-agent-attach` | `:v0.1.0` |
 | Helm chart | `oci://ghcr.io/kubeopencode/helm-charts/kubeopencode` | `0.1.0` |
 | GitHub Release | github.com/kubeopencode/kubeopencode/releases | `v0.1.0` |
 
@@ -176,9 +175,7 @@ Expected jobs:
 - `verify-versions`
 - `unit-test`, `integration-test`, `e2e-test`
 - `build-kubeopencode`
-- `build-agent-opencode`
 - `build-agent-devbox`
-- `build-agent-attach`
 - `push-helm-chart`
 - `github-release`
 
@@ -279,7 +276,6 @@ git push origin :refs/tags/NEW_VERSION
 Check the workflow logs. Common causes:
 - `GITHUB_TOKEN` permissions issue (ensure `packages: write` is set)
 - Docker buildx platform issues
-- `build-agent-attach` depends on `build-agent-opencode` — if opencode fails, attach also fails
 
 ### Helm chart push fails
 

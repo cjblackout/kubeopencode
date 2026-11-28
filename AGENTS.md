@@ -37,7 +37,7 @@ KubeOpenCode brings Agentic AI capabilities into the Kubernetes ecosystem. By le
 - **agentRef or templateRef** - Task must reference exactly one: an Agent (persistent) or AgentTemplate (ephemeral)
 - **No Batch/BatchRun** - Use Helm/Kustomize (Kubernetes-native approach)
 - **CronTask** - Scheduled task execution (CronTask:Task = CronJob:Job). Creates Tasks on cron schedule with concurrency policy, maxRetainedTasks (blocks creation, does NOT delete), and manual trigger support
-- **Two-container pattern**: Init container (`agentImage`) copies OpenCode binary to `/tools`, Worker container (`executorImage`) runs the server
+- **Single-container server**: The Agent Deployment's server container runs the `kubeadp-agent` image (which bundles the `kubeadp-agent` binary, `agent-run` and the `opencode` CLI) with `kubeadp-agent worker`. When an explicit `executorImage` is set, a `kubeadp-init` container copies those three binaries from `kubeadpImage` to `/tools` and the worker reads them from there.
 
 ### Context System
 
@@ -51,7 +51,7 @@ Key behaviors:
 
 ### Agent Configuration (Summary)
 
-Key Agent spec fields: `templateRef`, `profile`, `agentImage`, `kubeadpImage`, `executorImage`, `attachImage` (deprecated, unused), `command` (optional, has default), `workspaceDir` (required), `port` (default: 4096), `extraPorts` (additional Service/Deployment ports for DinD, VS Code, etc.), `persistence`, `suspend`, `standby` (automatic suspend/resume lifecycle), `contexts`, `skills` (external SKILL.md sources from Git repos, auto-injects `skills.paths` into OpenCode config), `plugins` (OpenCode plugins installed via npm; controller creates a plugin-init container that runs `npm install` into a shared `/plugins` volume, loads via `file:///plugins/node_modules/<package>` path into OpenCode config's `plugin` array — executor container does not need npm), `config` (inline YAML/JSON object → `/tools/opencode.json`), `credentials`, `caBundle`, `proxy`, `imagePullSecrets`, `podSpec`, `serviceAccountName`, `maxConcurrentTasks`, `quota`, `share` (shareable terminal link).
+Key Agent spec fields: `templateRef`, `profile`, `kubeadpImage` (initializes `/tools` with kubeadp-agent + opencode when provisioning is needed), `executorImage` (worker container; default == kubeadp image), `agentImage`/`attachImage` (deprecated, ignored), `command` (optional, has default), `workspaceDir` (required), `port` (default: 4096), `extraPorts` (additional Service/Deployment ports for DinD, VS Code, etc.), `persistence`, `suspend`, `standby` (automatic suspend/resume lifecycle), `contexts`, `skills` (external SKILL.md sources from Git repos, auto-injects `skills.paths` into OpenCode config), `plugins` (OpenCode plugins installed via npm; controller creates a plugin-init container that runs `npm install` into a shared `/plugins` volume, loads via `file:///plugins/node_modules/<package>` path into OpenCode config's `plugin` array — executor container does not need npm), `config` (inline YAML/JSON object → `/tools/opencode.json`), `credentials`, `caBundle`, `proxy`, `imagePullSecrets`, `podSpec`, `serviceAccountName`, `maxConcurrentTasks`, `quota`, `share` (shareable terminal link).
 
 > See `website/docs/features.md` for detailed YAML examples of Agent configuration, proxy, credentials, concurrency, quota, persistence, and Git auto-sync.
 
@@ -211,14 +211,12 @@ Helm flag `--set server.enabled=true` deploys the UI server. Port is configured 
 
 ### Agent Images
 
-Two-container pattern: `opencode` (init container) + `devbox` (executor). Located in `agents/`.
+The server/worker runs the `kubeadp-agent` image (see `docker/kubeadp-agent/`), which bundles the `kubeadp-agent` binary, `agent-run` and the `opencode` CLI. `agents/` holds the executor images (`devbox/`, `echo/`).
 
 ```bash
-make agent-build AGENT=opencode    # Local (Kind)
-make agent-buildx AGENT=opencode   # Remote (multi-arch)
+make agent-build AGENT=devbox     # Build an executor agent locally (Kind)
+docker build -f docker/kubeadp-agent/Dockerfile -t kubeadp-agent .  # Build the kubeadp-agent server image
 ```
-
-> See `docs/agent-images.md` for image resolution, customization, and backward compatibility.
 
 ## Key Files and Directories
 
@@ -230,7 +228,7 @@ internal/controller/      # Reconcilers (task_controller, agent_controller, agen
 deploy/crds/              # Generated CRD YAMLs
 deploy/local-dev/         # Local development manifests and examples (setup instructions in CONTRIBUTING.md)
 charts/kubeopencode/      # Helm chart
-agents/                   # Agent images (opencode/, devbox/)
+agents/                   # Executor agent images (devbox/, echo/)
 e2e/                      # E2E tests
 docs/                     # Documentation
 ```

@@ -25,12 +25,12 @@ spec:
         tools: [git, make, curl, jq, python, node, go]
         baseImage: "ubuntu:22.04"
         maintainer: "kubeopencode-team"
-    - name: opencode
-      image: "ghcr.io/cjblackout/kubeopencode-agent-opencode:latest"
+    - name: kubeadp-agent
+      image: "ghcr.io/cjblackout/kubeopencode/kubeadp-agent:latest"
       metadata:
-        description: "OpenCode AI coding agent init container"
+        description: "kubeadp-agent worker with the bundled opencode CLI engine"
         category: agent
-        tags: [opencode]
+        tags: [worker, opencode]
         maintainer: "kubeopencode-team"
 
   # Skills — Git-hosted SKILL.md sources

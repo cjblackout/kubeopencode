@@ -85,22 +85,22 @@ graph TB
 | **Task Pod (agentRef)** | Lightweight Pod that submits tasks to Agent server via `task-submit` |
 | **Task Pod (templateRef)** | Standalone Pod with full environment, runs independently |
 
-### Multi-Init Container Pattern
+### Server Container Pattern
 
-Agent Deployments use an init-container pattern:
+Agent Deployments run the `kubeadp-agent` image by default (which bundles `kubeadp-agent`, `agent-run` and the `opencode` CLI), with an optional init container only when a custom `executorImage` is set:
 
-1. **Kubeadp Init Container** (`kubeadpImage`): Copies `kubeadp-agent` and `agent-run` binaries to `/tools` shared volume
-2. **OpenCode Init Container** (`agentImage`): Copies OpenCode binary to `/tools` shared volume
-3. **Worker Container** (`executorImage`): Runs `kubeadp-agent worker`
+1. **Server Container** (`executorImage` defaults to `kubeadpImage`): Runs `kubeadp-agent worker`; the bundled opencode CLI lives at `/usr/local/bin/opencode`
+2. **Kubeadp Init Container** (`kubeadpImage`, only when `executorImage` is explicitly set): Copies `kubeadp-agent`, `agent-run` and `opencode` to `/tools` shared volume
+3. **Worker Container** (`executorImage`): Runs `/tools/kubeadp-agent worker` when the init container above is present
 
 ### Image Resolution
 
 | Field | Container | Default |
 |-------|-----------|---------|
-| `kubeadpImage` | Init Container (kubeadp-agent) | `ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64` |
-| `agentImage` | Init Container (OpenCode) | `ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest` |
-| `executorImage` | Worker Container (Server) | `ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest` |
-| `attachImage` | Not used for Task Pods any more (deprecated, kept for compatibility) | `ghcr.io/kubeopencode/kubeopencode-agent-attach:latest` |
+| `kubeadpImage` | Server Container (default) / Init Container (explicit executor) | `ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64` |
+| `executorImage` | Worker Container (Server) | `kubeadpImage` (kubeadp-agent image itself) |
+| `agentImage` | Deprecated, ignored | — |
+| `attachImage` | Deprecated, ignored | — |
 
 ### Task Execution Flow
 
@@ -178,9 +178,10 @@ Task (single task execution)
 Agent (running AI agent instance — always creates Deployment + Service)
 └── AgentSpec
     ├── profile: string             (brief human-readable summary)
-    ├── agentImage: string           (OpenCode init container image)
-    ├── executorImage: string        (Main worker container image)
-    ├── attachImage: string          (deprecated, unused for agentRef Task Pods)
+    ├── kubeadpImage: string         (kubeadp-agent image; server default + /tools provisioning)
+    ├── agentImage: string           (deprecated, ignored)
+    ├── executorImage: string        (Worker container image; defaults to kubeadpImage)
+    ├── attachImage: string          (deprecated, ignored)
     ├── workspaceDir: string         (default: "/workspace")
     ├── command: []string
     ├── port: int32                  (OpenCode server port, default: 4096)
@@ -342,7 +343,7 @@ type InitContainerOverrides struct {
 }
 
 type SystemContainerOverrides struct {
-    OpenCodeInit *InitContainerOverrides // Overrides for the opencode-init container (copies OpenCode binary)
+    OpenCodeInit *InitContainerOverrides // Overrides for the kubeadp-init container (copies binaries to /tools)
     ContextInit  *InitContainerOverrides // Overrides for the context-init container (copies ConfigMap content)
     GitInit      *InitContainerOverrides // Overrides for ALL git-init-* containers (clones Git repos)
     GitSync      *InitContainerOverrides // Overrides for ALL git-sync-* sidecars (periodic Git sync)

@@ -9,9 +9,7 @@ metadata:
   name: default
 spec:
   profile: "Default development agent with org standards and GitHub access"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
-  attachImage: ghcr.io/kubeopencode/kubeopencode-agent-attach:latest
   workspaceDir: /workspace
   command: ["opencode", "serve"]
   port: 4096
@@ -124,11 +122,12 @@ spec:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `profile` | string | - | Brief human-readable summary (informational only) |
-| `agentImage` | string | `ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest` | OpenCode init container image |
-| `executorImage` | string | `ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest` | Main worker container image |
-| `attachImage` | string | `ghcr.io/kubeopencode/kubeopencode-agent-attach:latest` | Lightweight image for Task Pods (agentRef mode) |
+| `kubeadpImage` | string | `ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64` | kubeadp-agent image; server container by default, /tools provisioning when explicit executorImage |
+| `agentImage` | string | - | Deprecated, ignored |
+| `executorImage` | string | `kubeadpImage` | Main worker container image (runs `kubeadp-agent worker`) |
+| `attachImage` | string | - | Deprecated, ignored |
 | `workspaceDir` | string | `/workspace` | Agent working directory |
-| `command` | []string | `["opencode", "serve"]` | Command to run in the worker container |
+| `command` | []string | `kubeadp-agent worker` (default) | Command to run in the worker container |
 | `port` | int32 | 4096 | OpenCode server port |
 | `serviceAccountName` | string | - | Kubernetes ServiceAccount for the Agent pod |
 
@@ -196,7 +195,6 @@ metadata:
   name: opencode-agent
 spec:
   profile: "OpenCode agent with custom model configuration"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -221,7 +219,6 @@ metadata:
   name: opencode-agent
 spec:
   profile: "OpenCode agent with ConfigMap-based config"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -252,7 +249,6 @@ metadata:
   name: opencode-agent
 spec:
   profile: "OpenCode agent with Secret-based config"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

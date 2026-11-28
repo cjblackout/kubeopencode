@@ -60,9 +60,8 @@ var _ = Describe("OpenCode E2E Tests", Label(LabelOpenCode), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         opencodeImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      opencodeImage, // OpenCode image has deps needed by opencode serve
-					AttachImage:        opencodeImage, // Use same image for attach pods in e2e (no separate attach image)
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
 					Port:               4096,

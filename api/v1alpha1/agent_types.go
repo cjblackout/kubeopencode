@@ -207,32 +207,35 @@ type AgentSpec struct {
 	Profile string `json:"profile,omitempty"`
 
 	// AgentImage specifies the OpenCode init container image.
-	// This image contains the OpenCode binary that gets copied to /tools volume.
-	// The init container runs this image and copies the opencode binary to /tools/opencode.
-	// If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest".
+	//
+	// Deprecated: ignored. The kubeadp-agent image bundles the opencode CLI
+	// engine (KA-16/KA-17), so no separate opencode init container image is
+	// used any more. Kept for CRD compatibility.
 	// +optional
 	AgentImage string `json:"agentImage,omitempty"`
 
-	// KubeadpImage specifies the kubeadp-agent init container image.
-	// This image contains the kubeadp-agent and agent-run binaries that get copied to /tools volume.
+	// KubeadpImage specifies the kubeadp-agent image.
+	// This image contains the kubeadp-agent and agent-run binaries and the
+	// bundled opencode CLI; it runs the worker as the server container by
+	// default, and carries the kubeadp-init container that copies the binaries
+	// to /tools when an explicit executorImage is used.
 	// If not specified, defaults to "ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64".
 	// +optional
 	KubeadpImage string `json:"kubeadpImage,omitempty"`
 
 	// ExecutorImage specifies the main worker container image for task execution.
-	// This is the development environment where tasks actually run.
-	// The container uses /tools/opencode (provided by agentImage init container) to execute AI tasks.
-	// If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest".
+	// The container image that actually runs the kubeadp-agent worker in the
+	// server Deployment. When set explicitly, the kubeadp-init container
+	// provisions /tools with kubeadp-agent, agent-run and the opencode CLI.
+	// If not specified, the kubeadp-image itself runs the worker.
 	// +optional
 	ExecutorImage string `json:"executorImage,omitempty"`
 
 	// AttachImage specifies the lightweight image used for --attach Pods.
-	// Tasks using agentRef create Pods that run `opencode run --attach <server-url>`.
-	// These Pods only need the OpenCode binary and network access, not the full development
-	// environment. Using a minimal image (~25MB) instead of devbox (~1GB) significantly
-	// reduces image pull time and resource usage.
 	//
-	// If not specified, defaults to "ghcr.io/kubeopencode/kubeopencode-agent-attach:latest".
+	// Deprecated: ignored. Task Pods submit jobs to the Agent's kubeadp-agent
+	// worker through kubeopencode task-submit from the system image; no
+	// attach image is used any more. Kept for CRD compatibility.
 	// +optional
 	AttachImage string `json:"attachImage,omitempty"`
 
@@ -723,14 +726,16 @@ type InitContainerOverrides struct {
 // container types rather than all containers.
 //
 // Container types and their roles:
-//   - openCodeInit: copies the OpenCode binary from agentImage to /tools
+//   - openCodeInit: copies kubeadp-agent, agent-run and the opencode binary from kubeadpImage to /tools (kubeadp-init container)
 //   - contextInit: copies ConfigMap content into the writable workspace
 //   - gitInit: clones Git repositories for Git contexts (all git-init-* containers)
 //   - gitSync: periodically syncs Git repositories (HotReload policy sidecars)
 //   - pluginInit: installs OpenCode plugins via npm
 type SystemContainerOverrides struct {
-	// OpenCodeInit configures overrides for the opencode-init init container.
-	// This container copies the OpenCode binary from agentImage to /tools volume.
+	// OpenCodeInit configures overrides for the kubeadp-init init container.
+	// This container copies kubeadp-agent, agent-run and the opencode binary
+	// from kubeadpImage to the /tools volume (the field name is kept for API
+	// compatibility).
 	// +optional
 	OpenCodeInit *InitContainerOverrides `json:"openCodeInit,omitempty"`
 

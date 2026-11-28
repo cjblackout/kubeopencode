@@ -22,41 +22,37 @@ import (
 
 // agentConfig holds the resolved configuration from Agent or AgentTemplate
 type agentConfig struct {
-	agentImage         string   // OpenCode init container image (copies binary to /tools)
-	kubeadpImage       string   // kubeadp-agent init container image (copies binaries to /tools)
-	executorImage      string   // Worker container image for task execution
-	attachImage        string   // Lightweight image for --attach Pods
-	command            []string // Command for agent container (optional, has default)
-	workspaceDir       string
-	contexts           []kubeopenv1alpha1.ContextItem
-	skills             []kubeopenv1alpha1.SkillSource
-	plugins            []kubeopenv1alpha1.PluginSpec          // OpenCode plugins to load
-	config             *runtime.RawExtension                  // OpenCode config (inline JSON object, resolved from configRef if set)
-	configRef          *kubeopenv1alpha1.OpenCodeConfigSource // OpenCode config from external source (resolved into config by reconciler)
-	credentials        []kubeopenv1alpha1.Credential
-	podSpec            *kubeopenv1alpha1.AgentPodSpec
-	serviceAccountName string
-	maxConcurrentTasks *int32
-	quota              *kubeopenv1alpha1.QuotaConfig
-	caBundle           *kubeopenv1alpha1.CABundleConfig           // Custom CA bundle configuration (nil = no custom CA)
-	proxy              *kubeopenv1alpha1.ProxyConfig              // HTTP/HTTPS proxy configuration (nil = no proxy)
-	imagePullSecrets   []corev1.LocalObjectReference              // Image pull secrets for private registries
-	port               int32                                      // Server port (default 4096)
-	extraPorts         []kubeopenv1alpha1.ExtraPort               // Additional ports to expose on Service/Deployment
-	persistence        *kubeopenv1alpha1.PersistenceConfig        // Persistence configuration
-	suspend            bool                                       // Whether Agent is suspended
-	serverReady        bool                                       // Whether Agent server is ready (from status)
-	extraEnv           []corev1.EnvVar                            // Extra env vars injected into ALL containers
-	systemContainers   *kubeopenv1alpha1.SystemContainerOverrides // Per-container-type env/mount overrides
+	kubeadpImage          string   // kubeadp-agent image (server container by default; init container when executorImage is set)
+	executorImage         string   // Worker container image for task execution
+	executorImageExplicit bool     // True when executorImage was explicitly set (Agent or template), false when defaulted
+	command               []string // Command for agent container (optional, has default)
+	workspaceDir          string
+	contexts              []kubeopenv1alpha1.ContextItem
+	skills                []kubeopenv1alpha1.SkillSource
+	plugins               []kubeopenv1alpha1.PluginSpec          // OpenCode plugins to load
+	config                *runtime.RawExtension                  // OpenCode config (inline JSON object, resolved from configRef if set)
+	configRef             *kubeopenv1alpha1.OpenCodeConfigSource // OpenCode config from external source (resolved into config by reconciler)
+	credentials           []kubeopenv1alpha1.Credential
+	podSpec               *kubeopenv1alpha1.AgentPodSpec
+	serviceAccountName    string
+	maxConcurrentTasks    *int32
+	quota                 *kubeopenv1alpha1.QuotaConfig
+	caBundle              *kubeopenv1alpha1.CABundleConfig           // Custom CA bundle configuration (nil = no custom CA)
+	proxy                 *kubeopenv1alpha1.ProxyConfig              // HTTP/HTTPS proxy configuration (nil = no proxy)
+	imagePullSecrets      []corev1.LocalObjectReference              // Image pull secrets for private registries
+	port                  int32                                      // Server port (default 4096)
+	extraPorts            []kubeopenv1alpha1.ExtraPort               // Additional ports to expose on Service/Deployment
+	persistence           *kubeopenv1alpha1.PersistenceConfig        // Persistence configuration
+	suspend               bool                                       // Whether Agent is suspended
+	serverReady           bool                                       // Whether Agent server is ready (from status)
+	extraEnv              []corev1.EnvVar                            // Extra env vars injected into ALL containers
+	systemContainers      *kubeopenv1alpha1.SystemContainerOverrides // Per-container-type env/mount overrides
 }
 
 // ResolveAgentConfig extracts configuration from the Agent spec.
 func ResolveAgentConfig(agent *kubeopenv1alpha1.Agent) agentConfig {
 	cfg := agentConfig{
-		agentImage:         defaultString(agent.Spec.AgentImage, DefaultAgentImage),
 		kubeadpImage:       defaultString(agent.Spec.KubeadpImage, DefaultKubeadpImage),
-		executorImage:      defaultString(agent.Spec.ExecutorImage, DefaultExecutorImage),
-		attachImage:        defaultString(agent.Spec.AttachImage, DefaultAttachImage),
 		command:            agent.Spec.Command,
 		workspaceDir:       agent.Spec.WorkspaceDir,
 		contexts:           agent.Spec.Contexts,
@@ -78,6 +74,13 @@ func ResolveAgentConfig(agent *kubeopenv1alpha1.Agent) agentConfig {
 		suspend:            agent.Spec.Suspend,
 		serverReady:        agent.Status.Ready,
 	}
+	if agent.Spec.ExecutorImage != "" {
+		cfg.executorImage = agent.Spec.ExecutorImage
+		cfg.executorImageExplicit = true
+	}
+	if cfg.executorImage == "" {
+		cfg.executorImage = DefaultExecutorImage
+	}
 	if agent.Spec.PodSpec != nil {
 		cfg.extraEnv = agent.Spec.PodSpec.ExtraEnv
 		cfg.systemContainers = agent.Spec.PodSpec.SystemContainers
@@ -92,10 +95,7 @@ func ResolveAgentConfig(agent *kubeopenv1alpha1.Agent) agentConfig {
 // port, persistence, and suspend are also not applicable for ephemeral Pods.
 func ResolveTemplateToConfig(tmpl *kubeopenv1alpha1.AgentTemplate) agentConfig {
 	cfg := agentConfig{
-		agentImage:         defaultString(tmpl.Spec.AgentImage, DefaultAgentImage),
 		kubeadpImage:       defaultString(tmpl.Spec.KubeadpImage, DefaultKubeadpImage),
-		executorImage:      defaultString(tmpl.Spec.ExecutorImage, DefaultExecutorImage),
-		attachImage:        defaultString(tmpl.Spec.AttachImage, DefaultAttachImage),
 		command:            tmpl.Spec.Command,
 		workspaceDir:       tmpl.Spec.WorkspaceDir,
 		contexts:           tmpl.Spec.Contexts,
@@ -110,6 +110,13 @@ func ResolveTemplateToConfig(tmpl *kubeopenv1alpha1.AgentTemplate) agentConfig {
 		proxy:              tmpl.Spec.Proxy,
 		imagePullSecrets:   tmpl.Spec.ImagePullSecrets,
 		extraPorts:         tmpl.Spec.ExtraPorts,
+	}
+	if tmpl.Spec.ExecutorImage != "" {
+		cfg.executorImage = tmpl.Spec.ExecutorImage
+		cfg.executorImageExplicit = true
+	}
+	if cfg.executorImage == "" {
+		cfg.executorImage = DefaultExecutorImage
 	}
 	if tmpl.Spec.PodSpec != nil {
 		cfg.extraEnv = tmpl.Spec.PodSpec.ExtraEnv
@@ -249,22 +256,17 @@ func defaultString(val, defaultVal string) string {
 }
 
 const (
-	// DefaultAgentImage is the default OpenCode init container image.
-	// This image copies the OpenCode binary to /tools volume.
-	DefaultAgentImage = "ghcr.io/cjblackout/kubeopencode-agent-opencode:latest"
-
-	// DefaultKubeadpImage is the default kubeadp-agent init container image.
-	// This image copies the kubeadp-agent and agent-run binaries to /tools volume.
+	// DefaultKubeadpImage is the default kubeadp-agent image. It carries the
+	// kubeadp-agent and agent-run binaries, the claude-code and agy harness
+	// engines and the bundled opencode CLI engine (KA-16). It is the default
+	// server container image of Agent Deployments, and the image of the
+	// kubeadp-init container that provisions /tools when an explicit
+	// executorImage is used or a Task Pod runs opencode from /tools.
 	DefaultKubeadpImage = "ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64"
 
 	// DefaultExecutorImage is the default worker container image for task execution.
 	// This is the development environment where tasks actually run.
 	DefaultExecutorImage = "ghcr.io/cjblackout/kubeopencode-agent-devbox:latest"
-
-	// DefaultAttachImage is the lightweight image for Server-mode --attach Pods.
-	// This minimal image (~25MB) contains only the OpenCode binary + shell + CA certs.
-	// Used when Tasks connect to a persistent OpenCode server via --attach flag.
-	DefaultAttachImage = "ghcr.io/cjblackout/kubeopencode-agent-attach:latest"
 
 	// DefaultKubeOpenCodeImage is the default kubeopencode container image.
 	// This unified image provides: controller, git-init (Git clone), etc.
@@ -415,27 +417,10 @@ func inferImagePullPolicy(image string) corev1.PullPolicy {
 	return corev1.PullIfNotPresent
 }
 
-// buildOpenCodeInitContainer creates an init container that copies OpenCode binary to /tools.
-// This enables the two-container pattern where:
-// - Init container (agentImage): Contains OpenCode, copies it to /tools
-// - Worker container (executorImage): Uses /tools/opencode to execute tasks
-func buildOpenCodeInitContainer(agentImage string) corev1.Container {
-	return corev1.Container{
-		Name:            "opencode-init",
-		Image:           agentImage,
-		ImagePullPolicy: inferImagePullPolicy(agentImage),
-		// Uses default entrypoint from agents/opencode/entrypoint.sh
-		// which copies /opencode to ${TOOLS_DIR}/opencode
-		Env: []corev1.EnvVar{
-			{Name: "TOOLS_DIR", Value: ToolsMountPath},
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: ToolsVolumeName, MountPath: ToolsMountPath},
-		},
-	}
-}
-
-// buildKubeadpInitContainer creates an init container that copies kubeadp-agent and agent-run binaries to /tools.
+// buildKubeadpInitContainer creates an init container that copies kubeadp-agent,
+// agent-run and the bundled opencode CLI binaries to /tools. This provisions the
+// /tools volume for Task Pods and for Agent Deployments that use an explicit
+// executorImage (the worker then reads /tools/kubeadp-agent and /tools/opencode).
 func buildKubeadpInitContainer(kubeadpImage string) corev1.Container {
 	return corev1.Container{
 		Name:            "kubeadp-init",
@@ -443,7 +428,7 @@ func buildKubeadpInitContainer(kubeadpImage string) corev1.Container {
 		ImagePullPolicy: inferImagePullPolicy(kubeadpImage),
 		Command: []string{
 			"sh", "-c",
-			"cp /usr/local/bin/kubeadp-agent /tools/kubeadp-agent && cp /usr/local/bin/agent-run /tools/agent-run && chmod +x /tools/kubeadp-agent /tools/agent-run",
+			"cp /usr/local/bin/kubeadp-agent /tools/kubeadp-agent && cp /usr/local/bin/agent-run /tools/agent-run && cp /usr/local/bin/opencode /tools/opencode && chmod +x /tools/kubeadp-agent /tools/agent-run /tools/opencode",
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: ToolsVolumeName, MountPath: ToolsMountPath},
@@ -1267,7 +1252,7 @@ func applyExtraEnvAndSystemOverrides(initContainers []corev1.Container, executor
 		sc := cfg.systemContainers
 		for i := range initContainers {
 			switch initContainers[i].Name {
-			case "opencode-init":
+			case "kubeadp-init":
 				applyInitContainerOverrides(&initContainers[i], sc.OpenCodeInit)
 			case "context-init":
 				applyInitContainerOverrides(&initContainers[i], sc.ContextInit)
@@ -1284,9 +1269,9 @@ func applyExtraEnvAndSystemOverrides(initContainers []corev1.Container, executor
 
 // buildPod creates a Pod object for the task with context mounts.
 // The Pod is created in the same namespace as the Task.
-// The serverURL parameter is used for Server-mode Agents: when non-empty, the Pod will use
-// `opencode run --attach <serverURL>` to connect to an existing OpenCode server instead of
-// running a standalone instance.
+// The serverURL parameter is used for Server-mode Agents: when non-empty, the Pod runs
+// `kubeopencode task-submit` to submit the task as a job to the Agent's kubeadp-agent
+// worker instead of running a standalone opencode instance.
 func buildPod(task *kubeopenv1alpha1.Task, podName string, cfg agentConfig, contextConfigMap *corev1.ConfigMap, fileMounts []fileMount, dirMounts []dirMount, gitMounts []gitMount, sysCfg systemConfig, serverURL string) *corev1.Pod {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
@@ -1294,7 +1279,7 @@ func buildPod(task *kubeopenv1alpha1.Task, podName string, cfg agentConfig, cont
 	var initContainers []corev1.Container
 
 	// Add tools volume for sharing OpenCode binary between init and worker containers.
-	// The OpenCode init container copies the binary to /tools, and the worker container uses it.
+	// The kubeadp-init container copies the binaries to /tools, and the worker container uses it.
 	volumes = append(volumes, corev1.Volume{
 		Name: ToolsVolumeName,
 		VolumeSource: corev1.VolumeSource{
@@ -1306,8 +1291,9 @@ func buildPod(task *kubeopenv1alpha1.Task, podName string, cfg agentConfig, cont
 		MountPath: ToolsMountPath,
 	})
 
-	// Add OpenCode init container FIRST - it copies the OpenCode binary to /tools
-	initContainers = append(initContainers, buildOpenCodeInitContainer(cfg.agentImage))
+	// Add kubeadp-init container FIRST - it copies kubeadp-agent, agent-run and
+	// opencode binaries to /tools.
+	initContainers = append(initContainers, buildKubeadpInitContainer(cfg.kubeadpImage))
 
 	// Always add workspace emptyDir volume for writable workspace.
 	// This is essential for SCC environments where containers run with random UIDs
@@ -1706,19 +1692,22 @@ func buildPod(task *kubeopenv1alpha1.Task, podName string, cfg agentConfig, cont
 				ReadOnly:  true,
 			})
 		} else {
-			// templateRef path: run standalone OpenCode instance.
-			// Pre-warm the models cache to avoid ProviderModelNotFoundError on cold starts
-			// where no persistent disk cache exists (each Task Pod starts fresh).
+			// templateRef path: run standalone OpenCode instance using the
+			// opencode binary provisioned to /tools by kubeadp-init.
+			// Pre-warm the models cache to avoid ProviderModelNotFoundError on
+			// cold starts where no persistent disk cache exists (each Task Pod
+			// starts fresh).
 			agentCommand = []string{
 				"sh", "-c",
 				fmt.Sprintf(`%s; %s; /tools/opencode run --title %s "$(cat %s/task.md)"`, OpenCodeSymlinkCmd, OpenCodeModelsWarmupCmd, shellEscape(sessionTitle), cfg.workspaceDir),
 			}
 		}
 	}
-	// Determine executor image: use lightweight attach image only for agentRef tasks
-	// that use the default --attach command. When a custom command is provided,
-	// keep the executor image since the custom command may need tools not available
-	// in the minimal attach image.
+	// Determine executor image: for agentRef Tasks using the default command,
+	// the Pod only runs `kubeopencode task-submit`, a small HTTP client of the
+	// Agent's kubeadp-agent worker, so the lightweight unified KubeOpenCode
+	// system image is used. When a custom command is provided, keep the
+	// executor image since the command may need its tools.
 	executorImage := cfg.executorImage
 	imagePullPolicy := inferImagePullPolicy(executorImage)
 	if serverURL != "" && len(cfg.command) == 0 {

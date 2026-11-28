@@ -119,9 +119,9 @@ The following table lists the configurable parameters of the kubeadp chart and t
 
 ### Agent Configuration
 
-Agent images are configured in Agent CRDs, not in this Helm chart. The two-container pattern uses:
-- `agentImage`: OpenCode init container (default: `ghcr.io/cjblackout/kubeopencode-agent-opencode`)
-- `executorImage`: Worker container (default: `ghcr.io/cjblackout/kubeopencode-agent-devbox`)
+Agent images are configured in Agent CRDs, not in this Helm chart. The server container uses:
+- `kubeadpImage`: kubeadp-agent image (server container by default; `/tools` provisioning when an explicit `executorImage` is set)
+- `executorImage`: Worker container (default: `kubeadpImage`)
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -161,7 +161,6 @@ metadata:
   name: default
   namespace: kubeopencode-system
 spec:
-  agentImage: ghcr.io/cjblackout/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

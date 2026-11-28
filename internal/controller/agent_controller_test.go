@@ -366,9 +366,9 @@ var _ = Describe("AgentController", func() {
 	})
 
 	// NOTE: Session persistence PVC properties (access modes, size, volume mounts,
-	// OPENCODE_DB env var) are thoroughly tested in server_builder_test.go (unit tests)
-	// and e2e/server_test.go (E2E tests). Integration tests focus on verifying the
-	// reconciler creates the PVC when persistence is configured.
+	// AGENT_RUN_STATE_ROOT env var) are thoroughly tested in server_builder_test.go
+	// (unit tests) and e2e/server_test.go (E2E tests). Integration tests focus on
+	// verifying the reconciler creates the PVC when persistence is configured.
 	Context("When creating an Agent with session persistence", func() {
 		It("Should create a session PVC via reconciler", func() {
 			agentName := "test-session-persist-agent"

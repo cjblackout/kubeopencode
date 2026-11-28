@@ -10,12 +10,10 @@ kind: AgentTemplate
 metadata:
   name: team-base
 spec:
-  # OpenCode init container image
-  agentImage: ghcr.io/cjblackout/kubeopencode-agent-opencode:dev
+  # kubeadp-agent image (provides kubeadp-agent + opencode to kubeadp-init /tools provisioning)
+  kubeadpImage: ghcr.io/cjblackout/kubeopencode/kubeadp-agent:dev
   # Executor container image
   executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox:dev
-  # Attach image for agentRef Task Pods
-  attachImage: ghcr.io/cjblackout/kubeopencode-agent-attach:dev
   # Working directory
   workspaceDir: /workspace
   # ServiceAccount for RBAC

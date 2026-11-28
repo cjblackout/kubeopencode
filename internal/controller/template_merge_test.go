@@ -52,14 +52,14 @@ func TestMergeAgentWithTemplate(t *testing.T) {
 					t.Errorf("expected serviceAccountName=default-sa, got %s", cfg.serviceAccountName)
 				}
 				// Images: agent is empty, so template + defaults
-				if cfg.agentImage != "custom-agent:v1" {
-					t.Errorf("expected agentImage=custom-agent:v1, got %s", cfg.agentImage)
+				if cfg.kubeadpImage != DefaultKubeadpImage {
+					t.Errorf("expected kubeadpImage default, got %s", cfg.kubeadpImage)
 				}
 				if cfg.executorImage != "custom-executor:v1" {
 					t.Errorf("expected executorImage=custom-executor:v1, got %s", cfg.executorImage)
 				}
-				if cfg.attachImage != "custom-attach:v1" {
-					t.Errorf("expected attachImage=custom-attach:v1, got %s", cfg.attachImage)
+				if !cfg.executorImageExplicit {
+					t.Errorf("expected executorImageExplicit=true when template sets executorImage")
 				}
 				// Command inherited from template
 				if len(cfg.command) != 3 || cfg.command[0] != "sh" {
@@ -92,11 +92,11 @@ func TestMergeAgentWithTemplate(t *testing.T) {
 				},
 			},
 			check: func(t *testing.T, cfg agentConfig) {
-				if cfg.agentImage != "my-agent:v2" {
-					t.Errorf("expected agent image override, got %s", cfg.agentImage)
-				}
 				if cfg.executorImage != "my-executor:v2" {
 					t.Errorf("expected executor image override, got %s", cfg.executorImage)
+				}
+				if !cfg.executorImageExplicit {
+					t.Errorf("expected executorImageExplicit=true when agent sets executorImage")
 				}
 				if cfg.workspaceDir != "/my-workspace" {
 					t.Errorf("expected workspaceDir override, got %s", cfg.workspaceDir)
@@ -182,14 +182,14 @@ func TestMergeAgentWithTemplate(t *testing.T) {
 				},
 			},
 			check: func(t *testing.T, cfg agentConfig) {
-				if cfg.agentImage != DefaultAgentImage {
-					t.Errorf("expected default agent image %s, got %s", DefaultAgentImage, cfg.agentImage)
+				if cfg.kubeadpImage != DefaultKubeadpImage {
+					t.Errorf("expected default kubeadp image %s, got %s", DefaultKubeadpImage, cfg.kubeadpImage)
 				}
 				if cfg.executorImage != DefaultExecutorImage {
 					t.Errorf("expected default executor image %s, got %s", DefaultExecutorImage, cfg.executorImage)
 				}
-				if cfg.attachImage != DefaultAttachImage {
-					t.Errorf("expected default attach image %s, got %s", DefaultAttachImage, cfg.attachImage)
+				if cfg.executorImageExplicit {
+					t.Errorf("expected executorImageExplicit=false when neither agent nor template sets executorImage")
 				}
 			},
 		},
@@ -585,11 +585,14 @@ func TestMergeWithEmptyTemplateMatchesResolveConfig(t *testing.T) {
 	direct := ResolveAgentConfig(agent)
 
 	// Agent fields should be the same (agent always wins for non-zero values)
-	if merged.agentImage != direct.agentImage {
-		t.Errorf("agentImage mismatch: merged=%s direct=%s", merged.agentImage, direct.agentImage)
-	}
 	if merged.executorImage != direct.executorImage {
 		t.Errorf("executorImage mismatch: merged=%s direct=%s", merged.executorImage, direct.executorImage)
+	}
+	if merged.kubeadpImage != direct.kubeadpImage {
+		t.Errorf("kubeadpImage mismatch: merged=%s direct=%s", merged.kubeadpImage, direct.kubeadpImage)
+	}
+	if merged.executorImageExplicit != direct.executorImageExplicit {
+		t.Errorf("executorImageExplicit mismatch: merged=%v direct=%v", merged.executorImageExplicit, direct.executorImageExplicit)
 	}
 	if merged.workspaceDir != direct.workspaceDir {
 		t.Errorf("workspaceDir mismatch: merged=%s direct=%s", merged.workspaceDir, direct.workspaceDir)
@@ -634,14 +637,14 @@ func TestResolveTemplateToConfig(t *testing.T) {
 				},
 			},
 			check: func(t *testing.T, cfg agentConfig) {
-				if cfg.agentImage != "custom-agent:v1" {
-					t.Errorf("expected agentImage=custom-agent:v1, got %s", cfg.agentImage)
+				if cfg.kubeadpImage != DefaultKubeadpImage {
+					t.Errorf("expected default kubeadp image %s, got %s", DefaultKubeadpImage, cfg.kubeadpImage)
 				}
 				if cfg.executorImage != "custom-executor:v1" {
 					t.Errorf("expected executorImage=custom-executor:v1, got %s", cfg.executorImage)
 				}
-				if cfg.attachImage != "custom-attach:v1" {
-					t.Errorf("expected attachImage=custom-attach:v1, got %s", cfg.attachImage)
+				if !cfg.executorImageExplicit {
+					t.Errorf("expected executorImageExplicit=true when template sets executorImage")
 				}
 				if cfg.workspaceDir != "/tmpl-workspace" {
 					t.Errorf("expected workspaceDir=/tmpl-workspace, got %s", cfg.workspaceDir)
@@ -691,14 +694,14 @@ func TestResolveTemplateToConfig(t *testing.T) {
 				Spec:       kubeopenv1alpha1.AgentTemplateSpec{},
 			},
 			check: func(t *testing.T, cfg agentConfig) {
-				if cfg.agentImage != DefaultAgentImage {
-					t.Errorf("expected default agent image %s, got %s", DefaultAgentImage, cfg.agentImage)
+				if cfg.kubeadpImage != DefaultKubeadpImage {
+					t.Errorf("expected default kubeadp image %s, got %s", DefaultKubeadpImage, cfg.kubeadpImage)
 				}
 				if cfg.executorImage != DefaultExecutorImage {
 					t.Errorf("expected default executor image %s, got %s", DefaultExecutorImage, cfg.executorImage)
 				}
-				if cfg.attachImage != DefaultAttachImage {
-					t.Errorf("expected default attach image %s, got %s", DefaultAttachImage, cfg.attachImage)
+				if cfg.executorImageExplicit {
+					t.Errorf("expected executorImageExplicit=false, got true")
 				}
 				if cfg.workspaceDir != "" {
 					t.Errorf("expected empty workspaceDir, got %s", cfg.workspaceDir)

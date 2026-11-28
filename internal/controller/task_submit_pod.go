@@ -118,10 +118,16 @@ func buildTaskSubmitCommand(task *kubeopenv1alpha1.Task, cfg agentConfig, server
 // workspaceInitScript returns the shell snippet that creates the default
 // project repository once (idempotent) and runs the worker command. The job API
 // creates a git worktree of a project, so the project must be a repository with
-// at least one commit.
-func workspaceInitScript(workspaceDir, workerCommand string) string {
+// at least one commit. When one or more homeDirs are given (e.g. HOME on a
+// persistent session volume), each is created first so the shell and the engine
+// have a writable home.
+func workspaceInitScript(workspaceDir, workerCommand string, homeDirs ...string) string {
 	repo := path.Join(workspaceDir, DefaultTaskProject)
-	return fmt.Sprintf(
+	init := fmt.Sprintf(
 		`mkdir -p %[1]s && if [ ! -d %[1]s/.git ]; then git -C %[1]s init -q -b main && git -C %[1]s -c user.name=kubeopencode -c user.email=kubeopencode@localhost commit -q --allow-empty -m "kubeopencode: initial commit"; fi; %[2]s`,
 		shellEscape(repo), workerCommand)
+	for _, home := range homeDirs {
+		init = "mkdir -p " + shellEscape(home) + " && " + init
+	}
+	return init
 }

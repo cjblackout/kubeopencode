@@ -13,14 +13,6 @@ __SMOKE_NODE_SELECTOR__
     fsGroup: 1000
     runAsNonRoot: true
     runAsUser: 1000
-  initContainers:
-  - name: opencode-init
-    image: ghcr.io/cjblackout/kubeopencode-agent-opencode@sha256:35d5d97e980104a8815bb4e4962e25e6310b59ff3999969efa193688fb5a0dbd
-    volumeMounts:
-    - {name: tools, mountPath: /tools}
-    - {name: tools, mountPath: /opt/tools}
-    # TEMPORARY WORKAROUNDS (KA-9): emptyDir workspace mount
-    - {name: pa, mountPath: /workspace}
   containers:
   - name: mock
     image: __SMOKE_IMAGE__
@@ -37,15 +29,12 @@ __SMOKE_NODE_SELECTOR__
     volumeMounts:
     - {name: scripts, mountPath: /scripts}
     - {name: work, mountPath: /work}
-    - {name: tools, mountPath: /tools}
-    - {name: tools, mountPath: /opt/tools}
-    # TEMPORARY WORKAROUNDS (KA-9): emptyDir workspace mount
+    # Temporary workaround (KA-9): emptyDir workspace mount
     - {name: pa, mountPath: /workspace}
     resources:
       requests: {cpu: 200m, memory: 256Mi}
       limits: {cpu: "4", memory: 2Gi}
   volumes:
-  - {name: tools, emptyDir: {}}
   - {name: pa, emptyDir: {}}
   - {name: work, emptyDir: {sizeLimit: 2Gi}}
   - {name: scripts, configMap: {name: oc-smoke-scripts, defaultMode: 493}}

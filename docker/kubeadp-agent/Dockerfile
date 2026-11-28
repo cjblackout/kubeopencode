@@ -173,6 +173,38 @@ RUN apt_update() { for i in 1 2 3 4 5 6; do apt-get -o Acquire::Retries=5 update
       && test -x /payload/usr/local/bin/node \
       && test -x /payload/usr/local/bin/claude
 
+# Stage 3b: fetch the opencode CLI from GitHub Releases (KA-16). The engine
+# binary of the opencode harness is downloaded and verified here on a glibc
+# base exactly like the (now removed) agents/opencode downloader stage did, and
+# carried into the final runtime stage at /usr/local/bin/opencode. Once this
+# image replaces the old opencode init container image, the worker's opencode
+# engine needs no separate /tools injection. OPENCODE_VERSION is the single
+# source of truth in agents/Makefile; this Dockerfile's ARG default must be
+# kept in sync with it (the workflow passes it explicitly on every build).
+FROM debian:bookworm-slim AS opencode-downloader
+ARG OPENCODE_VERSION=1.19.4
+ARG TARGETARCH
+RUN apt_update() { for i in 1 2 3 4 5 6; do apt-get -o Acquire::Retries=5 update && [ -n "$(ls /var/lib/apt/lists/*_Packages* /var/lib/apt/lists/*_Packages.* 2>/dev/null)" ] && return 0; echo "apt update retry $i" >&2; sleep 10; done; return 1; }; \
+    apt_update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && set -ex; \
+    case "${TARGETARCH}" in \
+        amd64) ARCH="x64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac; \
+    FILENAME="opencode-linux-${ARCH}.tar.gz"; \
+    URL="https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/${FILENAME}"; \
+    echo "Downloading OpenCode v${OPENCODE_VERSION} from ${URL}..."; \
+    curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors "${URL}" -o /tmp/opencode.tar.gz; \
+    tar -xzf /tmp/opencode.tar.gz -C /tmp; \
+    mkdir -p /payload/usr/local/bin; \
+    mv /tmp/opencode /payload/usr/local/bin/opencode; \
+    chmod 755 /payload/usr/local/bin/opencode; \
+    rm -f /tmp/opencode.tar.gz
+
 # Stage 4: Final minimal runtime on debian:bookworm-slim (see base-image
 # reconciliation at the top). As superuser for the apt installs and the
 # user/uid layout, then drops to uid 1000 like both old images.
@@ -268,6 +300,10 @@ COPY --from=agent-builder /payload/. /
 # engine) -- one root-merge COPY. Self-contained native binary, staged the same
 # way as in docker/ai-server/.
 COPY --from=tools-builder /payload/. /
+
+# opencode-downloader payload: the opencode CLI (worker engine) at
+# /usr/local/bin/opencode, staged the same way as agents/opencode did.
+COPY --from=opencode-downloader /payload/. /
 
 # tini, the pod's PID 1.
 COPY --from=cli-tools /payload/. /

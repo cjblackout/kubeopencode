@@ -82,7 +82,6 @@ func TestBuildServerDeployment_WithCredentials(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		credentials: []kubeopenv1alpha1.Credential{
 			{
@@ -169,7 +168,6 @@ func TestBuildServerDeployment_WithEntireSecretCredential(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		credentials: []kubeopenv1alpha1.Credential{
 			{
@@ -216,7 +214,6 @@ func TestBuildServerDeployment_WithHOMEAndSHELLEnvVars(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -270,7 +267,6 @@ func TestBuildServerDeployment_WithTextContext(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -349,7 +345,6 @@ func TestBuildServerDeployment_WithConfigMapContext(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -419,7 +414,6 @@ func TestBuildServerDeployment_WithGitContext(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -452,7 +446,7 @@ func TestBuildServerDeployment_WithGitContext(t *testing.T) {
 		t.Errorf("git-context-0 emptyDir volume not found")
 	}
 
-	// Verify git-init container exists (should be after opencode-init)
+	// Verify git-init container exists (should be after kubeadp-init)
 	var foundGitInit bool
 	for _, ic := range deployment.Spec.Template.Spec.InitContainers {
 		if ic.Name == "git-init-0" {
@@ -542,7 +536,6 @@ func TestBuildServerDeployment_SkillsOnly_MountsToolsVolume(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		skills: []kubeopenv1alpha1.SkillSource{
 			{
@@ -605,7 +598,6 @@ func TestBuildServerDeployment_ServerPluginsOnly_MountsToolsVolume(t *testing.T)
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		plugins: []kubeopenv1alpha1.PluginSpec{
 			{Name: "cc-safety-net", Target: kubeopenv1alpha1.PluginTargetServer},
@@ -662,7 +654,6 @@ func TestBuildServerDeployment_TUIPluginsOnly_NoToolsMount(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		plugins: []kubeopenv1alpha1.PluginSpec{
 			{Name: "tui-theme", Target: kubeopenv1alpha1.PluginTargetTUI},
@@ -708,7 +699,6 @@ func TestBuildServerDeployment_SkipsOPENCODE_PERMISSIONWhenConfigHasPermission(t
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		config:        &runtime.RawExtension{Raw: []byte(`{"permission": "ask", "model": "gpt-4"}`)},
 	}
@@ -742,7 +732,6 @@ func TestBuildServerDeployment_SetsOPENCODE_PERMISSIONWhenConfigHasNoPermission(
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		config:        &runtime.RawExtension{Raw: []byte(`{"model": "gpt-4"}`)},
 	}
@@ -783,7 +772,6 @@ func TestBuildServerDeploymentWithProxy(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		proxy: &kubeopenv1alpha1.ProxyConfig{
 			HttpProxy:  "http://proxy:8080",
@@ -872,7 +860,6 @@ func TestBuildServerDeploymentWithImagePullSecrets(t *testing.T) {
 
 			cfg := agentConfig{
 				executorImage:    "test-executor:v1.0.0",
-				agentImage:       "test-agent:v1.0.0",
 				workspaceDir:     "/workspace",
 				imagePullSecrets: tt.imagePullSecrets,
 			}
@@ -919,7 +906,6 @@ func TestBuildServerDeploymentWithSecurityContext(t *testing.T) {
 
 		cfg := agentConfig{
 			executorImage: "test-executor:v1.0.0",
-			agentImage:    "test-agent:v1.0.0",
 			workspaceDir:  "/workspace",
 		}
 
@@ -966,7 +952,6 @@ func TestBuildServerDeploymentWithSecurityContext(t *testing.T) {
 		runAsNonRoot := true
 		cfg := agentConfig{
 			executorImage: "test-executor:v1.0.0",
-			agentImage:    "test-agent:v1.0.0",
 			workspaceDir:  "/workspace",
 			podSpec: &kubeopenv1alpha1.AgentPodSpec{
 				SecurityContext: &corev1.SecurityContext{
@@ -1015,7 +1000,6 @@ func TestBuildServerDeploymentWithCABundle(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		caBundle: &kubeopenv1alpha1.CABundleConfig{
 			ConfigMapRef: &kubeopenv1alpha1.CABundleReference{
@@ -1249,7 +1233,6 @@ func TestBuildServerDeployment_WithSessionPersistence(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1289,18 +1272,18 @@ func TestBuildServerDeployment_WithSessionPersistence(t *testing.T) {
 		t.Error("session volume mount not found on server container")
 	}
 
-	// Verify OPENCODE_DB env var
+	// Verify AGENT_RUN_STATE_ROOT env var points at the mounted session path
 	var foundEnv bool
 	for _, env := range container.Env {
-		if env.Name == OpenCodeDBEnvVar {
+		if env.Name == "AGENT_RUN_STATE_ROOT" {
 			foundEnv = true
-			if env.Value != ServerSessionDBPath {
-				t.Errorf("%s = %q, want %q", OpenCodeDBEnvVar, env.Value, ServerSessionDBPath)
+			if env.Value != ServerSessionMountPath {
+				t.Errorf("%s = %q, want %q", "AGENT_RUN_STATE_ROOT", env.Value, ServerSessionMountPath)
 			}
 		}
 	}
 	if !foundEnv {
-		t.Errorf("%s env var not found", OpenCodeDBEnvVar)
+		t.Errorf("AGENT_RUN_STATE_ROOT env var not found")
 	}
 }
 
@@ -1317,7 +1300,6 @@ func TestBuildServerDeployment_WithoutSessionPersistence(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1333,11 +1315,12 @@ func TestBuildServerDeployment_WithoutSessionPersistence(t *testing.T) {
 		}
 	}
 
-	// Verify no OPENCODE_DB env var
+	// Verify no OPENCODE_DB env var (the worker now persists under
+	// AGENT_RUN_STATE_ROOT; the legacy OPENCODE_DB is gone).
 	container := deployment.Spec.Template.Spec.Containers[0]
 	for _, env := range container.Env {
-		if env.Name == OpenCodeDBEnvVar {
-			t.Errorf("%s env var should not be present without persistence config", OpenCodeDBEnvVar)
+		if env.Name == "OPENCODE_DB" {
+			t.Errorf("OPENCODE_DB env var should not be present")
 		}
 	}
 }
@@ -1459,7 +1442,6 @@ func TestBuildServerDeployment_WithWorkspacePersistence(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1495,7 +1477,6 @@ func TestBuildServerDeployment_SuspendedAgentStillBuildsDeployment(t *testing.T)
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1518,7 +1499,6 @@ func TestBuildServerDeployment_WithoutWorkspacePersistence(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1554,7 +1534,6 @@ func TestBuildServerDeployment_WithGitSyncHotReload(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor",
-		agentImage:    "test-agent",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1639,7 +1618,6 @@ func TestBuildServerDeployment_WithGitSyncRollout(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor",
-		agentImage:    "test-agent",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1699,7 +1677,6 @@ func TestBuildServerDeployment_WithPodSpecAnnotations(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor",
-		agentImage:    "test-agent",
 		workspaceDir:  "/workspace",
 		podSpec: &kubeopenv1alpha1.AgentPodSpec{
 			Annotations: map[string]string{
@@ -1755,7 +1732,6 @@ func TestBuildServerDeployment_PodSpecAnnotationsNoGitHash(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor",
-		agentImage:    "test-agent",
 		workspaceDir:  "/workspace",
 		podSpec: &kubeopenv1alpha1.AgentPodSpec{
 			Annotations: map[string]string{
@@ -1793,7 +1769,6 @@ func TestBuildServerDeployment_NoAnnotationsStaysNil(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor",
-		agentImage:    "test-agent",
 		workspaceDir:  "/workspace",
 	}
 
@@ -1908,7 +1883,6 @@ func TestBuildServerDeployment_ContextHashAnnotation(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1",
-		agentImage:    "test-agent:v1",
 		workspaceDir:  "/workspace",
 	}
 	sysCfg := systemConfig{}
@@ -1973,7 +1947,6 @@ func TestBuildServerDeployment_SkillNamesPerNameMount(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1",
-		agentImage:    "test-agent:v1",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2198,7 +2171,6 @@ func TestBuildServerDeployment_WithExtraPorts(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		extraPorts:    agent.Spec.ExtraPorts,
 	}
@@ -2258,7 +2230,6 @@ func TestBuildServerDeployment_WithoutExtraPorts(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2296,7 +2267,6 @@ func TestBuildServerDeployment_WithLifecycle(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		podSpec:       agent.Spec.PodSpec,
 	}
@@ -2335,7 +2305,6 @@ func TestBuildServerDeployment_WithoutLifecycle(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2360,7 +2329,6 @@ func TestBuildServerDeployment_WithExtraVolumesAndMounts(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		podSpec: &kubeopenv1alpha1.AgentPodSpec{
 			ExtraVolumes: []corev1.Volume{
@@ -2435,7 +2403,6 @@ func TestBuildServerDeployment_WithoutExtraVolumes(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2461,7 +2428,6 @@ func TestBuildServerDeployment_WithPlugins(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		plugins: []kubeopenv1alpha1.PluginSpec{
 			{Name: "@example/my-plugin", Target: "server"},
@@ -2523,7 +2489,6 @@ func TestBuildServerDeployment_WithTUIPlugins(t *testing.T) {
 	t.Run("TUI plugin sets OPENCODE_TUI_CONFIG", func(t *testing.T) {
 		cfg := agentConfig{
 			executorImage: "test-executor:v1.0.0",
-			agentImage:    "test-agent:v1.0.0",
 			workspaceDir:  "/workspace",
 			plugins: []kubeopenv1alpha1.PluginSpec{
 				{Name: "@example/tui-plugin", Target: "tui"},
@@ -2548,7 +2513,6 @@ func TestBuildServerDeployment_WithTUIPlugins(t *testing.T) {
 	t.Run("server-only plugins do not set OPENCODE_TUI_CONFIG", func(t *testing.T) {
 		cfg := agentConfig{
 			executorImage: "test-executor:v1.0.0",
-			agentImage:    "test-agent:v1.0.0",
 			workspaceDir:  "/workspace",
 			plugins: []kubeopenv1alpha1.PluginSpec{
 				{Name: "@example/server-plugin", Target: "server"},
@@ -2577,7 +2541,6 @@ func TestBuildServerDeployment_WithGitWorkspaceRoot(t *testing.T) {
 
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2637,7 +2600,6 @@ func TestBuildServerDeployment_GitInitContainer_HomeEnv(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 	gitMounts := []gitMount{
@@ -2665,7 +2627,6 @@ func TestBuildServerDeployment_ExtraEnvAllContainers(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		extraEnv: []corev1.EnvVar{
 			{Name: "CORP_REGISTRY", Value: "registry.corp.example.com"},
@@ -2696,7 +2657,6 @@ func TestBuildServerDeployment_SystemContainers_GitInit(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		systemContainers: &kubeopenv1alpha1.SystemContainerOverrides{
 			GitInit: &kubeopenv1alpha1.InitContainerOverrides{
@@ -2720,13 +2680,12 @@ func TestBuildServerDeployment_SystemContainers_GitInit(t *testing.T) {
 		t.Error("git-init-0 missing GIT_EXTRA from systemContainers.gitInit")
 	}
 
-	// opencode-init must NOT have the git-specific env var
-	openCodeInit := findDeploymentInitContainer(deployment, "opencode-init")
-	if openCodeInit == nil {
-		t.Fatal("opencode-init not found")
-	}
-	if hasEnvVar(openCodeInit.Env, "GIT_EXTRA", "git-only") {
-		t.Error("opencode-init should NOT have GIT_EXTRA (git-init-specific)")
+	// kubeadp-init must NOT have the git-specific env var
+	openCodeInit := findDeploymentInitContainer(deployment, "kubeadp-init")
+	if openCodeInit != nil {
+		if hasEnvVar(openCodeInit.Env, "GIT_EXTRA", "git-only") {
+			t.Error("kubeadp-init should NOT have GIT_EXTRA (git-init-specific)")
+		}
 	}
 }
 
@@ -2737,7 +2696,6 @@ func TestBuildServerDeployment_SystemContainers_GitSync(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 		systemContainers: &kubeopenv1alpha1.SystemContainerOverrides{
 			GitSync: &kubeopenv1alpha1.InitContainerOverrides{
@@ -2775,10 +2733,10 @@ func TestBuildServerDeployment_SystemContainers_GitSync(t *testing.T) {
 		t.Error("git-sync-0 missing SYNC_EXTRA from systemContainers.gitSync")
 	}
 
-	// The main opencode-server container must NOT have SYNC_EXTRA
+	// The main kubeadp-agent container must NOT have SYNC_EXTRA
 	mainContainer := deployment.Spec.Template.Spec.Containers[0]
 	if hasEnvVar(mainContainer.Env, "SYNC_EXTRA", "sync-only") {
-		t.Error("opencode-server should NOT have SYNC_EXTRA (git-sync-specific)")
+		t.Error("kubeadp-agent container should NOT have SYNC_EXTRA (git-sync-specific)")
 	}
 }
 
@@ -2794,7 +2752,6 @@ func TestBuildServerDeployment_DefaultPort(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2818,7 +2775,6 @@ func TestBuildServerDeployment_OTelEnabled(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 
@@ -2910,7 +2866,6 @@ func TestBuildServerDeployment_OTelEnableLLMTraces(t *testing.T) {
 	}
 	cfg := agentConfig{
 		executorImage: "test-executor:v1.0.0",
-		agentImage:    "test-agent:v1.0.0",
 		workspaceDir:  "/workspace",
 	}
 

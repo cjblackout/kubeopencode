@@ -575,7 +575,7 @@ func (r *TaskReconciler) initializeTask(ctx context.Context, task *kubeopenv1alp
 		return ctrl.Result{}, err
 	}
 
-	log.Info("initialized Task", "pod", podName, "image", cfg.agentImage)
+	log.Info("initialized Task", "pod", podName, "image", cfg.executorImage)
 	r.Recorder.Eventf(task, nil, corev1.EventTypeNormal, "PodCreated", "CreatePod", "Created pod %s", podName)
 	return ctrl.Result{}, nil
 }

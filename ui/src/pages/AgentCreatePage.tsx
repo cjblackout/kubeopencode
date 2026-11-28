@@ -267,7 +267,7 @@ function AgentCreatePage() {
                 id="agentImage"
                 value={agentImage}
                 onChange={(e) => setAgentImage(e.target.value)}
-                placeholder={hasTemplate && templateDetail?.agentImage ? templateDetail.agentImage : 'ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest'}
+                placeholder={hasTemplate && templateDetail?.agentImage ? templateDetail.agentImage : 'ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64'}
                 className={monoInputClass}
               />
             </div>

@@ -1,50 +1,57 @@
 # Agent Images
 
-kubeadp provides **template agent images** that serve as starting points for building your own customized agents. These templates demonstrate the agent interface pattern and include common development tools, but are designed to be customized based on your specific requirements.
+kubeadp provides a **server image** (`kubeadp-agent`) that runs the Agent's worker process and bundles the `opencode` engine, plus **template executor images** (`devbox`, `echo`) that serve as starting points for building your own customized agents.
 
 ## Container Pattern
 
-kubeadp uses multiple container images:
+An Agent Deployment uses:
 
-1. **Kubeadp Init Container** (`kubeadpImage`): Copies `kubeadp-agent` and `agent-run` binaries to `/tools`
-2. **OpenCode Init Container** (`agentImage`): Contains the OpenCode CLI, copies it to a shared `/tools` volume
-3. **Worker Container** (`executorImage`): Your development environment that runs `kubeadp-agent worker` in Agent Deployments, or `opencode run` in ephemeral template-based Task Pods
-4. **Attach Container** (`attachImage`): Deprecated and unused. Task Pods that reference an Agent run `kubeopencode task-submit` from the system image
+1. **Server Container** (`kubeadpImage` by default, or `executorImage` when explicitly set): Runs `kubeadp-agent worker` (persistent multi-session worker). By default this is the `kubeadp-agent` image itself, which already contains `kubeadp-agent`, `agent-run` **and** the bundled `opencode` CLI under `/usr/local/bin` — no init container is needed.
+2. **Kubeadp Init Container** (`kubeadpImage`, only when an explicit `executorImage` is set): Copies `kubeadp-agent`, `agent-run` and `opencode` to the shared `/tools` volume so a custom executor image without those binaries can still run the worker.
+3. **OpenCode Init Container** (`agentImage`): **Deprecated and ignored.** Kept only for CRD compatibility; the opencode CLI is bundled into the `kubeadp-agent` image instead.
+4. **Attach Container** (`attachImage`): **Deprecated and ignored.** Task Pods that reference an Agent run `kubeopencode task-submit` from the system image.
 
 ## Available Images
 
 | Image | Type | Description |
 |-------|------|-------------|
-| `opencode` | Init Container | OpenCode CLI binary |
-| `devbox` | Worker (Executor) | Universal development environment with Go, Node, Python, kubectl, helm |
-| `attach` | Attach Container | Lightweight image for connecting to Agent servers |
+| `kubeadp-agent` | Server/Worker | Runs `kubeadp-agent worker`; bundles `kubeadp-agent`, `agent-run`, `opencode` (see `docker/kubeadp-agent/`) |
+| `devbox` | Executor | Universal development environment with Go, Node, Python, kubectl, helm |
 | `echo` | Testing | Minimal Alpine image for E2E testing |
 
 ## Image Resolution
 
-When configuring an Agent, the controller resolves images as follows:
+When configuring an Agent, the controller resolves the server container as follows:
 
-| Configuration | Init Container | Worker Container | Attach Container |
-|--------------|----------------|------------------|------------------|
-| Both `agentImage` and `executorImage` set | `agentImage` | `executorImage` | `attachImage` (default if unset) |
-| Only `agentImage` set (legacy) | Default OpenCode image | `agentImage` | `attachImage` (default if unset) |
-| Neither set | Default OpenCode image | Default devbox image | Default attach image |
+| Configuration | Server Container | Init Container |
+|--------------|------------------|------------------|
+| Only `kubeadpImage` set (default) | `kubeadpImage` (runs `kubeadp-agent worker`) | None (binaries come from the image) |
+| Explicit `executorImage` set | `executorImage` (runs `kubeadp-agent worker`) | `kubeadpImage` (copies binaries to `/tools`) |
+| Neither set | Default kubeadp-agent image | None |
+
+`agentImage` and `attachImage` are **ignored**.
 
 ### Default Images
 
-- OpenCode init: `ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest`
-- Devbox executor: `ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest`
-- Attach: `ghcr.io/kubeopencode/kubeopencode-agent-attach:latest`
+- Server: `ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64`
+- Devbox executor: `ghcr.io/cjblackout/kubeopencode-agent-devbox:latest`
 
 ## Building Agent Images
 
-### Local Development (Kind Clusters)
+### Server Image (kubeadp-agent)
+
+The `kubeadp-agent` image is built from the repo root (build context must include `src/kubeadp-agent`):
 
 ```bash
-# Build OpenCode init container
-make agent-build AGENT=opencode
+docker build -f docker/kubeadp-agent/Dockerfile --build-arg BUILD_SHA=$(git rev-parse HEAD) -t kubeadp-agent .
+```
 
-# Build executor containers
+The opencode CLI's version is pinned by `OPENCODE_VERSION` in `agents/Makefile` (single source of truth) and passed as a build arg by `.github/workflows/build-kubeadp-agent.yml`.
+
+### Executor Images (Local Development / Kind Clusters)
+
+```bash
+# Build executor containers (devbox, echo)
 make agent-build AGENT=devbox
 
 # Customize registry and version
@@ -56,8 +63,6 @@ make agent-build AGENT=devbox IMG_REGISTRY=docker.io IMG_ORG=myorg VERSION=v1.0.
 For remote clusters (OpenShift, EKS, GKE, etc.), use multi-arch build and push:
 
 ```bash
-# Multi-arch build and push
-make agent-buildx AGENT=opencode
 make agent-buildx AGENT=devbox
 ```
 

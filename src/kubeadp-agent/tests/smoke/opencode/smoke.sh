@@ -3,12 +3,9 @@
 export HOME=/work/home
 
 # ==============================================================================
-# TEMPORARY WORKAROUNDS (KA-9)
-# The following lines work around sandbox policy defaults until KA-9 provides
-# dedicated project mounts and sandbox home overrides:
-# - creating /workspace/project-a (hardcoded sandbox requirement)
-# - mounting emptyDir at /workspace in pod.yaml
-# - setting KUBEADP_SANDBOX_HOME=/work/home
+# The kubeadp-agent image bundles the opencode CLI engine at the image's
+# /usr/local/bin/opencode (KA-16/KA-17); no init container provisions /tools any
+# more, so the engine is invoked from its bundled path.
 # ==============================================================================
 mkdir -p "$HOME/.config/opencode" /workspace/proj /workspace/project-a /work/state
 # ==============================================================================
@@ -26,7 +23,7 @@ for i in $(seq 1 60); do curl -sf http://127.0.0.1:8080/v1/models >/dev/null && 
 curl -sf http://127.0.0.1:8080/v1/models >/dev/null && ok mock-up || { bad mock-up; exit 1; }
 echo "== step 1: plain opencode run against the mock =="
 cd /workspace/proj
-timeout 120 /tools/opencode run --format json -m mock/mock-1 "say hi" > /work/oc-direct.log 2>&1; echo "opencode exit=$?"
+timeout 120 /usr/local/bin/opencode run --format json -m mock/mock-1 "say hi" > /work/oc-direct.log 2>&1; echo "opencode exit=$?"
 head -c 1500 /work/oc-direct.log; echo
 grep -q 'MOCK-OK' /work/oc-direct.log && ok opencode-direct-reply || bad opencode-direct-reply
 grep -q '"type":"step_finish"' /work/oc-direct.log && ok opencode-step-finish || bad opencode-step-finish
@@ -34,7 +31,7 @@ echo "== step 2: kubeadp-agent worker =="
 head -c 48 /dev/urandom | base64 -w0 > /work/rootkey; chmod 600 /work/rootkey
 
 # TEMPORARY WORKAROUNDS (KA-9): KUBEADP_SANDBOX_HOME
-export KUBEADP_JOBSET_ROOT_KEY_FILE=/work/rootkey KUBEADP_ROLE=worker KUBEADP_API_ALLOW_UNAUTHENTICATED=1 AGENT_RUN_STATE_ROOT=/work/state AGENT_RUN_WORKSPACE_ROOT=/workspace AGENT_RUN_OPENCODE_PATH=/opt/tools/opencode KUBEADP_SANDBOX_HOME=/work/home
+export KUBEADP_JOBSET_ROOT_KEY_FILE=/work/rootkey KUBEADP_ROLE=worker KUBEADP_API_ALLOW_UNAUTHENTICATED=1 AGENT_RUN_STATE_ROOT=/work/state AGENT_RUN_WORKSPACE_ROOT=/workspace AGENT_RUN_OPENCODE_PATH=/usr/local/bin/opencode KUBEADP_SANDBOX_HOME=/work/home
 
 # tiny JSON helper (no jq in the image): jf '<js expr on j>' reads stdin
 jf() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const v=eval(process.argv[1]);console.log(v===undefined?"":(typeof v==="object"?JSON.stringify(v):v))}catch(e){console.log("")}})' "$1"; }

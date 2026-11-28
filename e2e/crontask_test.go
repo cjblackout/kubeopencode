@@ -27,7 +27,7 @@ var _ = Describe("CronTask E2E Tests", Label(LabelCronTask), func() {
 				Namespace: testNS,
 			},
 			Spec: kubeopenv1alpha1.AgentSpec{
-				AgentImage:         agentImage,
+				KubeadpImage:       kubeadpImage,
 				ExecutorImage:      echoImage,
 				ServiceAccountName: testServiceAccount,
 				WorkspaceDir:       "/workspace",

@@ -25,7 +25,6 @@ metadata:
   name: hardened-agent
 spec:
   profile: "Security-hardened agent with strict container settings"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -54,7 +53,6 @@ metadata:
   name: uid-agent
 spec:
   profile: "Agent running as specific user and group"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -81,7 +79,6 @@ metadata:
   name: advanced-agent
 spec:
   profile: "Advanced agent with gVisor isolation and GPU scheduling"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -113,7 +110,6 @@ metadata:
   name: dev-agent
 spec:
   profile: "Development agent with extra port exposure"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -188,7 +184,7 @@ Available container targets:
 
 | Field | Container | Role |
 |-------|-----------|------|
-| `openCodeInit` | `opencode-init` | Copies OpenCode binary from `agentImage` to `/tools` |
+| `openCodeInit` | `kubeadp-init` | Copies `kubeadp-agent`, `agent-run` and `opencode` from `kubeadpImage` to `/tools` |
 | `contextInit` | `context-init` | Copies ConfigMap content into workspace |
 | `gitInit` | `git-init-*` | Clones Git repositories (all git-init containers) |
 | `gitSync` | `git-sync-*` | Periodically syncs Git repos (HotReload policy sidecars) |

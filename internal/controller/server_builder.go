@@ -22,7 +22,7 @@ const (
 	ServerDeploymentSuffix = "-server"
 
 	// ServerContainerName is the name of the main container in the server Deployment.
-	ServerContainerName = "opencode-server"
+	ServerContainerName = "kubeadp-agent"
 
 	// DefaultServerPort is the default port for OpenCode server.
 	DefaultServerPort int32 = 4096
@@ -57,14 +57,17 @@ const (
 	// ServerSessionMountPath is where the session PVC is mounted in the server container.
 	ServerSessionMountPath = "/data/sessions"
 
-	// ServerSessionDBPath is the full path to the OpenCode session database.
-	ServerSessionDBPath = ServerSessionMountPath + "/opencode.db"
+	// ServerSessionHomePath is the HOME directory of the server container when
+	// session persistence is enabled. It lives inside the session PVC so the
+	// opencode engine's own state (~/.config/opencode, its node_modules and
+	// database) survives pod restarts alongside the worker's AGENT_RUN_STATE_ROOT.
+	// The worker pod has no /etc/passwd entry for the running uid in SCC
+	// environments, so a fixed absolute path is used and pre-created by the
+	// workspace init script.
+	ServerSessionHomePath = ServerSessionMountPath + "/home"
 
 	// DefaultSessionPVCSize is the default size for the session PVC.
 	DefaultSessionPVCSize = "1Gi"
-
-	// OpenCodeDBEnvVar is the environment variable name for the OpenCode database path.
-	OpenCodeDBEnvVar = "OPENCODE_DB"
 
 	// ServerWorkspacePVCSuffix is appended to Agent name for the workspace PVC name.
 	ServerWorkspacePVCSuffix = "-server-workspace"
@@ -230,11 +233,36 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 	// HOME and SHELL are set for SCC (Security Context Constraints) compatibility.
 	// In SCC environments, containers run with random UIDs that have no /etc/passwd entry,
 	// causing HOME=/ (not writable) and SHELL=/sbin/nologin.
+	//
+	// By default the server container runs the kubeadp-agent image itself: the
+	// kubeadp-agent binary and the bundled opencode engine live in /usr/local/bin.
+	// When the user explicitly sets executorImage, a custom worker image without
+	// the binaries, kubeadp-init provisions /tools and the worker + opencode are
+	// read from there instead.
 	stateRoot := ServerSessionMountPath
+	opencodeBinary := "/usr/local/bin/opencode"
+	workerCommand := "exec kubeadp-agent worker"
+	containerImage := agentCfg.kubeadpImage
+	initPrefix := "true"
+	homeDir := DefaultHomeDir
+	if agentCfg.executorImageExplicit {
+		opencodeBinary = ToolsMountPath + "/opencode"
+		workerCommand = "exec /tools/kubeadp-agent worker"
+		containerImage = agentCfg.executorImage
+		initPrefix = OpenCodeSymlinkCmd
+	}
+	// When session persistence is enabled the opencode engine writes its state
+	// (~/.config/opencode, node_modules, DB) under HOME; point HOME into the
+	// session PVC so that state survives pod restarts instead of being wiped
+	// from the ephemeral /tmp.
+	sessionPersistence := agent.Spec.Persistence != nil && agent.Spec.Persistence.Sessions != nil
+	if sessionPersistence {
+		homeDir = ServerSessionHomePath
+	}
 	envVars := []corev1.EnvVar{
-		{Name: "HOME", Value: DefaultHomeDir},
+		{Name: "HOME", Value: homeDir},
 		{Name: "SHELL", Value: DefaultShell},
-		// Prepend /tools to PATH so the OpenCode and kubeadp-agent binaries (copied by init containers)
+		// Prepend /tools to PATH so the OpenCode and kubeadp-agent binaries (copied by kubeadp-init)
 		// are discoverable from interactive terminals.
 		{Name: "PATH", Value: ToolsMountPath + ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		{Name: "WORKSPACE_DIR", Value: agentCfg.workspaceDir},
@@ -244,8 +272,12 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 		{Name: "KUBEADP_ROLE", Value: "worker"},
 		{Name: "AGENT_RUN_WORKSPACE_ROOT", Value: agentCfg.workspaceDir},
 		{Name: "AGENT_RUN_STATE_ROOT", Value: stateRoot},
-		{Name: "AGENT_RUN_OPENCODE_PATH", Value: ToolsMountPath + "/opencode"},
-		{Name: "KUBEADP_SANDBOX_HOME", Value: DefaultHomeDir},
+		{Name: "AGENT_RUN_OPENCODE_PATH", Value: opencodeBinary},
+		// The opencode engine home/XDG data (~/.config/opencode) lives under the
+		// container HOME. Keep HOME on the session volume when session persistence
+		// is enabled so opencode's own state survives pod restarts alongside the
+		// worker's state_root.
+		{Name: "KUBEADP_SANDBOX_HOME", Value: homeDir},
 		{Name: "AGENT_RUN_API_LISTEN", Value: fmt.Sprintf("0.0.0.0:%d", port)},
 	}
 
@@ -318,8 +350,14 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 		},
 	}
 
-	// Add session persistence volume and env var if configured
-	if agent.Spec.Persistence != nil && agent.Spec.Persistence.Sessions != nil {
+	// Add session persistence volume if configured. The kubeadp-agent worker
+	// persists ALL of its state (config.toml, state.sqlite, job
+	// metadata/logs, a2a-inbox, opencode serve state) under AGENT_RUN_STATE_ROOT,
+	// which is set to ServerSessionMountPath, so the PVC already carries every
+	// worker artifact; no separate OPENCODE_DB is needed any longer. HOME is
+	// pointed at ServerSessionHomePath on the same PVC so the opencode engine's
+	// own data (~/.config/opencode, node_modules, DB) survives restarts too.
+	if sessionPersistence {
 		volumes = append(volumes, corev1.Volume{
 			Name: ServerSessionVolumeName,
 			VolumeSource: corev1.VolumeSource{
@@ -331,10 +369,6 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ServerSessionVolumeName,
 			MountPath: ServerSessionMountPath,
-		})
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  OpenCodeDBEnvVar,
-			Value: ServerSessionDBPath,
 		})
 	}
 
@@ -360,10 +394,16 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 	volumeMounts = append(volumeMounts, credMounts...)
 	envVars = append(envVars, credEnvs...)
 
-	// Track init containers (kubeadp-init and opencode-init)
+	// Track init containers. By default the server container runs the
+	// kubeadp-agent image, which bundles both kubeadp-agent and the opencode
+	// CLI engine, so NO init container is needed. Only when the user explicitly
+	// sets executorImage (a custom worker image without the binaries) does a
+	// single kubeadp-init container provision /tools with kubeadp-agent,
+	// agent-run and opencode, and the worker command reads them from /tools.
 	var initContainers []corev1.Container
-	initContainers = append(initContainers, buildKubeadpInitContainer(agentCfg.kubeadpImage))
-	initContainers = append(initContainers, buildOpenCodeInitContainer(agentCfg.agentImage))
+	if agentCfg.executorImageExplicit {
+		initContainers = append(initContainers, buildKubeadpInitContainer(agentCfg.kubeadpImage))
+	}
 
 	// Add context init containers and volumes
 	var contextInitMounts []corev1.VolumeMount
@@ -617,30 +657,40 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 
 	// Build the worker command running kubeadp-agent worker.
 	// When context-init handles config file writing, we don't need inline heredoc.
+	//
+	// By default (no explicit executorImage) the main container IS the
+	// kubeadp-agent image: kubeadp-agent and opencode are already in
+	// /usr/local/bin, so no /tools copy and no symlink are needed. When an
+	// explicit executorImage is used, kubeadp-init provisions /tools with the
+	// binaries and the symlink makes /tools/opencode discoverable.
 	hasContextInit := len(ctxFileMounts) > 0 || len(ctxDirMounts) > 0
+	var homeInitDirs []string
+	if sessionPersistence {
+		homeInitDirs = append(homeInitDirs, homeDir)
+	}
 	var command []string
 	if !configIsEmpty(agentCfg.config) && !hasContextInit {
 		// No context-init container — write config inline in the command
 		command = []string{
 			"sh", "-c",
 			fmt.Sprintf("%s; cat > %s << 'KOCEOF'\n%s\nKOCEOF\n%s",
-				OpenCodeSymlinkCmd, OpenCodeConfigPath, string(agentCfg.config.Raw),
-				workspaceInitScript(agentCfg.workspaceDir, "exec /tools/kubeadp-agent worker")),
+				initPrefix, OpenCodeConfigPath, string(agentCfg.config.Raw),
+				workspaceInitScript(agentCfg.workspaceDir, workerCommand, homeInitDirs...)),
 		}
 	} else {
 		// Config is written by context-init, or no config at all
 		command = []string{
 			"sh", "-c",
-			fmt.Sprintf("%s; %s", OpenCodeSymlinkCmd,
-				workspaceInitScript(agentCfg.workspaceDir, "exec /tools/kubeadp-agent worker")),
+			fmt.Sprintf("%s; %s", initPrefix,
+				workspaceInitScript(agentCfg.workspaceDir, workerCommand, homeInitDirs...)),
 		}
 	}
 
 	// Build the main container
 	container := corev1.Container{
 		Name:            ServerContainerName,
-		Image:           agentCfg.executorImage,
-		ImagePullPolicy: inferImagePullPolicy(agentCfg.executorImage),
+		Image:           containerImage,
+		ImagePullPolicy: inferImagePullPolicy(containerImage),
 		WorkingDir:      agentCfg.workspaceDir,
 		Command:         command,
 		Env:             envVars,

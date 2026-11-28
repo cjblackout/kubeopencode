@@ -15,7 +15,6 @@ metadata:
   name: internal-agent
 spec:
   profile: "Agent with custom CA for internal services"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -34,7 +33,6 @@ metadata:
   name: internal-agent
 spec:
   profile: "Agent with custom CA from Secret"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -101,7 +99,6 @@ metadata:
   name: enterprise-agent
 spec:
   profile: "Agent with corporate proxy configuration"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -145,7 +142,6 @@ metadata:
   name: private-registry-agent
 spec:
   profile: "Agent using images from private registries"
-  agentImage: registry.corp.example.com/kubeopencode/agent-opencode:latest
   executorImage: registry.corp.example.com/kubeopencode/agent-devbox:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
@@ -169,4 +165,4 @@ kubectl create secret docker-registry harbor-registry-secret \
   -n kubeopencode-system
 ```
 
-The `imagePullSecrets` are added to the Pod spec of all generated Pods, enabling Kubernetes to authenticate when pulling `agentImage`, `executorImage`, or `attachImage` from private registries.
+The `imagePullSecrets` are added to the Pod spec of all generated Pods, enabling Kubernetes to authenticate when pulling `executorImage` or `kubeadpImage` from private registries.

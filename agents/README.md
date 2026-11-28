@@ -4,35 +4,37 @@ This guide explains how to build custom executor images for KubeOpenCode.
 
 ## Overview
 
-KubeOpenCode uses a **two-container pattern** for executing AI-powered tasks:
+KubeOpenCode uses a **single-server pattern** for executing AI-powered tasks:
 
-1. **OpenCode Image** (Init Container): Contains the OpenCode CLI, copies it to a shared volume
-2. **Executor Image** (Worker Container): User's development environment that uses the OpenCode tool
+1. **Server Image** (`kubeadp-agent`): Runs the agent's persistent worker (`kubeadp-agent worker`) and bundles the `opencode` CLI engine under `/usr/local/bin`. This is the default server container for an Agent.
+2. **Kubeadp Init Container** (`kubeadpImage`, only when an explicit `executorImage` is set): Copies `kubeadp-agent`, `agent-run` and `opencode` to the shared `/tools` volume.
+3. **Executor Image** (Worker Container when `executorImage` is explicitly set, or the standalone opencode runner in ephemeral template-based Task Pods): The user's development environment.
 
-This design separates the AI tool (OpenCode) from the execution environment, allowing users to bring their own toolsets while using a single, maintained AI agent.
+This design keeps the AI tool (OpenCode) and the worker runtime bundled in one maintained image, while still allowing users to bring their own executor toolset.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Job Pod                               │
+│                      Agent Deployment                        │
 ├─────────────────────────────────────────────────────────────┤
-│  Init Container: opencode-init                               │
+│  Server Container: kubeadp-agent worker                      │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Image: kubeopencode-agent-opencode                   │  │
-│  │  - Contains OpenCode CLI (AI agent)            │  │
-│  │  - Copies opencode binary to /tools volume            │  │
+│  │  Image: kubeadp-agent (default)                       │  │
+│  │  - kubeadp-agent binary (worker)                      │  │
+│  │  - Bundled opencode CLI at /usr/local/bin/opencode    │  │
 │  └───────────────────────────────────────────────────────┘  │
-│                           │                                  │
-│                           ▼ shared volume (/tools)           │
-│                                                              │
-│  Main Container: worker                                      │
+│                                                             │
+│  (explicit executorImage only)                              │
+│  Init Container: kubeadp-init ──► /tools volume             │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Executor Images:                                     │  │
-│  │  ├── devbox        (full dev environment)             │  │
-│  │  └── user-custom   (your own toolset)                 │  │
-│  │                                                       │  │
-│  │  Runs: /tools/opencode run "$(cat task.md)"           │  │
+│  │  Image: kubeadpImage                                  │  │
+│  │  - copies kubeadp-agent, agent-run, opencode → /tools │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  Main Container: executorImage                              │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Runs: /tools/kubeadp-agent worker                    │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -41,18 +43,17 @@ This design separates the AI tool (OpenCode) from the execution environment, all
 
 | Concept | Description |
 |---------|-------------|
-| **Single AI Tool** | OpenCode is the only AI agent, simplifying maintenance |
-| **Tool Injection** | OpenCode binary is injected via init container |
-| **Custom Executors** | Users provide their own execution environments |
-| **Separation of Concerns** | AI tool vs development environment are decoupled |
+| **Bundled Engine** | The `kubeadp-agent` image bundles `kubeadp-agent`, `agent-run` and the `opencode` CLI |
+| **Custom Executors** | Users can still provide their own execution environments via `executorImage` |
+| **Single Server Image** | No separate opencode/attach init container images to maintain |
 
 ## Image Types
 
 | Image | Purpose | Container Type |
 |-------|---------|----------------|
-| `opencode` | OpenCode CLI (AI agent) | Init Container |
+| `kubeadp-agent` | Runs `kubeadp-agent worker`; bundles opencode CLI | Server (default) / Init (explicit executor) |
 | `devbox` | Universal development environment | Worker (Executor) |
-| `attach` | Lightweight image for Server mode `--attach` | Worker (Server mode) |
+| `echo` | Minimal test image | Testing |
 
 ## Devbox Image Contents
 
@@ -103,28 +104,24 @@ The universal devbox image (`kubeopencode-agent-devbox`) provides a comprehensiv
 From the `agents/` directory:
 
 ```bash
-# Build OpenCode image (init container)
-make AGENT=opencode build
-
 # Build devbox image (executor)
 make AGENT=devbox build
 
-# Build attach image (Server mode)
-make AGENT=attach build
-
 # Multi-arch build and push
-make AGENT=opencode buildx
 make AGENT=devbox buildx
-make AGENT=attach buildx
 ```
 
 From the project root:
 
 ```bash
 # Same commands via project Makefile
-make agent-build AGENT=opencode
 make agent-build AGENT=devbox
-make agent-build AGENT=attach
+```
+
+The `kubeadp-agent` server image is built separately (context is the repo root):
+
+```bash
+docker build -f docker/kubeadp-agent/Dockerfile --build-arg BUILD_SHA=$(git rev-parse HEAD) -t kubeadp-agent .
 ```
 
 ### Image Naming
@@ -205,7 +202,7 @@ docker run --rm \
 Every executor image should follow these conventions:
 
 1. **Work in `/workspace` directory**: All context files are mounted here
-2. **Support `/tools` volume mount**: OpenCode binary is injected here
+2. **Support `/tools` volume mount**: `kubeadp-agent`, `agent-run` and `opencode` binaries are injected here when an explicit `executorImage` is used
 3. **Output to stdout/stderr**: Results are captured as Job logs
 4. **Exit with appropriate code**: 0 for success, non-zero for failure
 5. **OpenShift compatible**: Use /tmp as HOME to support arbitrary UIDs
@@ -307,8 +304,7 @@ If a tool is missing:
 
 | Image | Approximate Size | Description |
 |-------|-----------------|-------------|
-| `opencode` | ~500 MB | OpenCode CLI only |
+| `kubeadp-agent` | ~2-3 GB | Server image (worker + bundled opencode CLI) |
 | `devbox` | ~2-3 GB | Full development environment |
-| `attach` | ~25 MB | Minimal image for Server mode (OpenCode binary + ca-certs) |
 
-The larger size of `devbox` is a trade-off for having a comprehensive development environment similar to GitHub Actions runners. The `attach` image is intentionally minimal as it only needs to connect to an OpenCode server and stream output.
+The larger size of `kubeadp-agent` and `devbox` is a trade-off for having a comprehensive runtime (worker engine + opencode CLI) and development environment similar to GitHub Actions runners.

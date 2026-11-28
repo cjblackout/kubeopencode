@@ -51,7 +51,7 @@ var _ = Describe("CA Bundle E2E Tests", Label(LabelAgent), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -129,7 +129,7 @@ var _ = Describe("CA Bundle E2E Tests", Label(LabelAgent), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -191,7 +191,7 @@ var _ = Describe("CA Bundle E2E Tests", Label(LabelAgent), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",

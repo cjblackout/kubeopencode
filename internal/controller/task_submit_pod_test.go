@@ -125,8 +125,8 @@ func TestBuildPodAgentRefUsesTaskSubmitAndSystemImage(t *testing.T) {
 		Spec:       kubeopenv1alpha1.TaskSpec{AgentRef: &kubeopenv1alpha1.AgentReference{Name: "my-agent"}},
 	}
 	cfg := agentConfig{
-		agentImage: "opencode:v1", executorImage: "devbox:v1", attachImage: "attach:v1",
-		workspaceDir: "/workspace", serviceAccountName: "sa",
+		executorImage: "devbox:v1",
+		workspaceDir:  "/workspace", serviceAccountName: "sa",
 	}
 	sys := defaultSystemConfig()
 	pod := buildPod(task, "t-pod", cfg, nil, nil, nil, nil, sys, "http://my-agent.default.svc:4096")
@@ -165,7 +165,7 @@ func TestBuildPodAgentRefWithCustomCommandKeepsExecutorImage(t *testing.T) {
 		Spec:       kubeopenv1alpha1.TaskSpec{AgentRef: &kubeopenv1alpha1.AgentReference{Name: "a"}},
 	}
 	cfg := agentConfig{
-		agentImage: "opencode:v1", executorImage: "devbox:v1", workspaceDir: "/workspace",
+		executorImage: "devbox:v1", workspaceDir: "/workspace",
 		command: []string{"sh", "-c", "echo custom"},
 	}
 	pod := buildPod(task, "t-pod", cfg, nil, nil, nil, nil, defaultSystemConfig(), "http://a.default.svc:4096")

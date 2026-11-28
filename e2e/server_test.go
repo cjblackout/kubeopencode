@@ -30,7 +30,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -107,7 +107,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -161,7 +161,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -236,7 +236,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -318,22 +318,21 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 		})
 	})
 
-	Context("Agent - AttachImage Usage", func() {
-		It("should use attachImage for Task Pods when specified", func() {
-			agentName := uniqueName("server-attach")
-			taskName := uniqueName("task-attach")
-			content := "# AttachImage Test"
+	Context("Agent - Task Pod Provisioning", func() {
+		It("should run task-submit with kubeadp-init provisioning when agentRef is used", func() {
+			agentName := uniqueName("server-kubeadp-init")
+			taskName := uniqueName("task-kubeadp-init")
+			content := "# Kubeadp Init Test"
 
-			By("Creating Agent with attachImage")
+			By("Creating Agent")
 			agent := &kubeopenv1alpha1.Agent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      agentName,
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
-					AttachImage:        echoImage, // Use echo image as attach image for testing
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
 					Port:               4096,
@@ -372,9 +371,14 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 				return err == nil && pod != nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("Verifying Pod uses the attach image")
-			Expect(pod.Spec.Containers).Should(HaveLen(1))
-			Expect(pod.Spec.Containers[0].Image).Should(Equal(echoImage))
+			By("Verifying the kubeadp-init container provisions /tools")
+			Expect(pod.Spec.InitContainers).ShouldNot(BeEmpty())
+			Expect(pod.Spec.InitContainers[0].Name).Should(Equal("kubeadp-init"))
+			Expect(pod.Spec.InitContainers[0].Image).Should(Equal(kubeadpImage))
+
+			By("Verifying the agent container uses task-submit (no attach image)")
+			agentContainer := pod.Spec.Containers[0]
+			Expect(agentContainer.Command).ShouldNot(ContainElement(ContainSubstring("--attach")))
 
 			By("Cleaning up")
 			Expect(k8sClient.Delete(ctx, task)).Should(Succeed())
@@ -406,7 +410,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -464,7 +468,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -509,7 +513,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -568,21 +572,20 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 	})
 
 	Context("Agent - Task Pod Command Verification", func() {
-		It("should use opencode run --attach in Task Pod command", func() {
+		It("should use kubeopencode task-submit in Task Pod command", func() {
 			agentName := uniqueName("server-cmd")
 			taskName := uniqueName("task-cmd")
 			content := "# Command Verification Test"
 
-			By("Creating Agent with port and attachImage")
+			By("Creating Agent")
 			agent := &kubeopenv1alpha1.Agent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      agentName,
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
-					AttachImage:        echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
 					Port:               4096,
@@ -621,13 +624,13 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 				return err == nil && pod != nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("Verifying Pod command uses --attach flag")
+			By("Verifying Pod command uses task-submit")
 			agentContainer := pod.Spec.Containers[0]
-			// Command should be ["sh", "-c", "opencode run --attach <url> ..."]
-			Expect(agentContainer.Command).Should(HaveLen(3))
-			Expect(agentContainer.Command[0]).Should(Equal("sh"))
-			Expect(agentContainer.Command[2]).Should(ContainSubstring("--attach"))
-			Expect(agentContainer.Command[2]).Should(ContainSubstring(agentName))
+			// Command should be ["/kubeopencode", "task-submit", "--url", ...]
+			Expect(agentContainer.Command[0]).Should(Equal("/kubeopencode"))
+			Expect(agentContainer.Command[1]).Should(Equal("task-submit"))
+			Expect(agentContainer.Command[2]).Should(Equal("--url"))
+			Expect(agentContainer.Command[3]).Should(ContainSubstring(agentName))
 
 			By("Cleaning up")
 			Expect(k8sClient.Delete(ctx, task)).Should(Succeed())
@@ -646,7 +649,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -694,17 +697,17 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 				return false
 			}, timeout, interval).Should(BeTrue())
 
-			By("Verifying OPENCODE_DB env var in Deployment")
+			By("Verifying AGENT_RUN_STATE_ROOT points at the session volume in Deployment")
 			deployment := &appsv1.Deployment{}
 			Expect(k8sClient.Get(ctx, deploymentKey, deployment)).Should(Succeed())
 			container := deployment.Spec.Template.Spec.Containers[0]
-			var foundDBEnv bool
+			var foundStateEnv bool
 			for _, env := range container.Env {
-				if env.Name == controller.OpenCodeDBEnvVar && env.Value == controller.ServerSessionDBPath {
-					foundDBEnv = true
+				if env.Name == "AGENT_RUN_STATE_ROOT" && env.Value == controller.ServerSessionMountPath {
+					foundStateEnv = true
 				}
 			}
-			Expect(foundDBEnv).To(BeTrue(), "OPENCODE_DB env var not found in Agent container")
+			Expect(foundStateEnv).To(BeTrue(), "AGENT_RUN_STATE_ROOT does not point at the session volume in Agent container")
 
 			By("Cleaning up")
 			Expect(k8sClient.Delete(ctx, agent)).Should(Succeed())
@@ -726,7 +729,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -765,7 +768,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -833,7 +836,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -919,7 +922,7 @@ var _ = Describe("Agent Deployment E2E Tests", Label(LabelServer), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",

@@ -13,9 +13,7 @@ kind: AgentTemplate
 metadata:
   name: team-config
 spec:
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: ghcr.io/kubeopencode/kubeopencode-agent-devbox:latest
-  attachImage: ghcr.io/kubeopencode/kubeopencode-agent-attach:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
   command: ["opencode", "serve"]
@@ -111,9 +109,10 @@ The Task controller creates a standalone Pod using the template's configuration.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `agentImage` | string | OpenCode init container image |
-| `executorImage` | string | Main worker container image |
-| `attachImage` | string | Lightweight image for Task Pods |
+| `kubeadpImage` | string | kubeadp-agent image; /tools provisioning (kubeadp-init) when explicit executorImage |
+| `agentImage` | string | Deprecated, ignored |
+| `executorImage` | string | Main worker container image (defaults to `kubeadpImage`) |
+| `attachImage` | string | Deprecated, ignored |
 | `workspaceDir` | string | Agent working directory (default: `/workspace`) |
 | `command` | []string | Command to run in the worker container |
 | `serviceAccountName` | string | Kubernetes ServiceAccount |
@@ -149,7 +148,7 @@ When an Agent references a template with `templateRef`, fields are merged as fol
 
 | Field Type | Merge Behavior | Example |
 |-----------|---------------|---------|
-| **Scalar/pointer fields** | Agent wins if set, otherwise template value | `agentImage`, `workspaceDir`, `command`, `config`, `configRef`, `podSpec`, `caBundle`, `proxy` |
+| **Scalar/pointer fields** | Agent wins if set, otherwise template value | `kubeadpImage`, `executorImage`, `workspaceDir`, `command`, `config`, `configRef`, `podSpec`, `caBundle`, `proxy` |
 | **List fields** | Agent's list **replaces** the template's (not appended) | `contexts`, `credentials`, `skills`, `plugins`, `imagePullSecrets`, `extraPorts` |
 | **Agent-only fields** | Always from Agent, ignored in template | `profile`, `port`, `persistence`, `suspend`, `standby`, `share` |
 

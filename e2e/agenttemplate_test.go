@@ -29,7 +29,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentTemplateSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -79,7 +79,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentTemplateSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -103,7 +103,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
 					TemplateRef:        &kubeopenv1alpha1.AgentTemplateReference{Name: tmplName},
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -173,7 +173,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentTemplateSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -190,7 +190,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
 					TemplateRef:        &kubeopenv1alpha1.AgentTemplateReference{Name: tmplName},
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -257,7 +257,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentTemplateSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -275,7 +275,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					},
 					Spec: kubeopenv1alpha1.AgentSpec{
 						TemplateRef:        &kubeopenv1alpha1.AgentTemplateReference{Name: tmplName},
-						AgentImage:         agentImage,
+						KubeadpImage:       kubeadpImage,
 						ExecutorImage:      echoImage,
 						ServiceAccountName: testServiceAccount,
 						WorkspaceDir:       "/workspace",
@@ -329,7 +329,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
 					TemplateRef:        &kubeopenv1alpha1.AgentTemplateReference{Name: "nonexistent-template"},
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -379,7 +379,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 					Namespace: testNS,
 				},
 				Spec: kubeopenv1alpha1.AgentTemplateSpec{
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",
@@ -395,7 +395,7 @@ var _ = Describe("AgentTemplate E2E Tests", Label(LabelAgentTemplate), func() {
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
 					TemplateRef:        &kubeopenv1alpha1.AgentTemplateReference{Name: tmplName},
-					AgentImage:         agentImage,
+					KubeadpImage:       kubeadpImage,
 					ExecutorImage:      echoImage,
 					ServiceAccountName: testServiceAccount,
 					WorkspaceDir:       "/workspace",

@@ -25,7 +25,7 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "docker"
-    directory: "/agents/opencode"
+    directory: "/docker/kubeadp-agent"
     schedule:
       interval: "weekly"
 

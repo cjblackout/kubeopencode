@@ -91,7 +91,6 @@ metadata:
   name: dev-agent
 spec:
   profile: "Development agent with VS Code in browser"
-  agentImage: ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest
   executorImage: your-registry/devbox-vscode:latest
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

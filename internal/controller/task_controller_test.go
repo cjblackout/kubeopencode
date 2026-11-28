@@ -85,10 +85,10 @@ var _ = Describe("TaskController", func() {
 			Expect(createdPod.Spec.Containers).Should(HaveLen(1))
 			Expect(createdPod.Spec.Containers[0].Image).Should(Equal(DefaultExecutorImage))
 
-			By("Verifying Pod has OpenCode init container")
+			By("Verifying Pod has kubeadp-init container")
 			Expect(createdPod.Spec.InitContainers).ShouldNot(BeEmpty())
-			Expect(createdPod.Spec.InitContainers[0].Name).Should(Equal("opencode-init"))
-			Expect(createdPod.Spec.InitContainers[0].Image).Should(Equal(DefaultAgentImage))
+			Expect(createdPod.Spec.InitContainers[0].Name).Should(Equal("kubeadp-init"))
+			Expect(createdPod.Spec.InitContainers[0].Image).Should(Equal(DefaultKubeadpImage))
 
 			By("Verifying Task status has PodName set")
 			Eventually(func() string {
@@ -115,10 +115,10 @@ var _ = Describe("TaskController", func() {
 	})
 
 	Context("When creating a Task with Agent reference", func() {
-		It("Should use attach image from Agent for worker container and agent image for init container", func() {
+		It("Should run task-submit from the system image and use kubeadp-init for provisioning", func() {
 			taskName := "test-task-agent"
 			agentConfigName := "test-agent-config"
-			customAgentImage := "custom-opencode:v1.0.0"
+			customKubeadpImage := "custom-kubeadp:v1.0.0"
 			customAttachImage := "custom-attach:v1.0.0"
 			description := "# Test with Agent"
 
@@ -129,7 +129,7 @@ var _ = Describe("TaskController", func() {
 					Namespace: taskNamespace,
 				},
 				Spec: kubeopenv1alpha1.AgentSpec{
-					AgentImage:         customAgentImage,
+					KubeadpImage:       customKubeadpImage,
 					AttachImage:        customAttachImage,
 					ServiceAccountName: "test-agent",
 					WorkspaceDir:       "/workspace",
@@ -165,10 +165,10 @@ var _ = Describe("TaskController", func() {
 			}, timeout, interval).Should(ContainElements("/kubeopencode", "task-submit"))
 			Expect(createdPod.Spec.Containers[0].Image).ShouldNot(Equal(customAttachImage))
 
-			By("Checking Pod uses custom agent image for init container")
+			By("Checking Pod uses the kubeadp image for the kubeadp-init container")
 			Expect(createdPod.Spec.InitContainers).ShouldNot(BeEmpty())
-			Expect(createdPod.Spec.InitContainers[0].Name).Should(Equal("opencode-init"))
-			Expect(createdPod.Spec.InitContainers[0].Image).Should(Equal(customAgentImage))
+			Expect(createdPod.Spec.InitContainers[0].Name).Should(Equal("kubeadp-init"))
+			Expect(createdPod.Spec.InitContainers[0].Image).Should(Equal(customKubeadpImage))
 
 			By("Cleaning up")
 			Expect(k8sClient.Delete(ctx, task)).Should(Succeed())

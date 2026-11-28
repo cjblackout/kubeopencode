@@ -12,9 +12,8 @@ All images are published under the `ghcr.io/kubeopencode/` namespace:
 | Image | Description |
 |-------|-------------|
 | `ghcr.io/kubeopencode/kubeopencode` | Unified binary: controller, git-init, context-init |
-| `ghcr.io/kubeopencode/kubeopencode-agent-opencode` | OpenCode CLI init container |
+| `ghcr.io/cjblackout/kubeopencode/kubeadp-agent` | Agent server image: kubeadp-agent worker + bundled opencode CLI |
 | `ghcr.io/kubeopencode/kubeopencode-agent-devbox` | Universal development environment |
-| `ghcr.io/kubeopencode/kubeopencode-agent-attach` | Lightweight attach image for server-mode |
 | `ghcr.io/kubeopencode/helm-charts/kubeopencode` | Helm chart (OCI) |
 
 ## GitHub Actions Authentication

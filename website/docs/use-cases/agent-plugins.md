@@ -203,11 +203,11 @@ You can also verify the plugin configuration is correctly injected by inspecting
 kubectl logs -n <namespace> <pod-name> -c plugin-init
 
 # Verify the config contains the plugin path
-kubectl exec -n <namespace> <pod-name> -c opencode-server -- cat /tools/opencode.json
+kubectl exec -n <namespace> <pod-name> -c kubeadp-agent -- cat /tools/opencode.json
 # Should contain the plugin path: file:///plugins/node_modules/cc-safety-net
 
 # Verify the package exists in the shared volume
-kubectl exec -n <namespace> <pod-name> -c opencode-server -- ls /plugins/node_modules/cc-safety-net/
+kubectl exec -n <namespace> <pod-name> -c kubeadp-agent -- ls /plugins/node_modules/cc-safety-net/
 ```
 
 ### Verifying TUI Plugins
@@ -221,7 +221,7 @@ kubeoc agent attach <agent-name> -n <namespace>
 For `plugin-gentleman`, you should see an animated ASCII mascot during busy states. You can also verify the TUI config:
 
 ```bash
-kubectl exec -n <namespace> <pod-name> -c opencode-server -- cat /tools/tui.json
+kubectl exec -n <namespace> <pod-name> -c kubeadp-agent -- cat /tools/tui.json
 # Should contain the plugin path: file:///plugins/node_modules/plugin-gentleman
 ```
 

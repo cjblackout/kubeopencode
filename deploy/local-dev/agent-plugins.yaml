@@ -10,7 +10,7 @@ kind: Agent
 metadata:
   name: plugin-test-agent
 spec:
-  agentImage: ghcr.io/cjblackout/kubeopencode-agent-opencode:dev
+  kubeadpImage: ghcr.io/cjblackout/kubeopencode/kubeadp-agent:dev
   executorImage: ghcr.io/cjblackout/kubeopencode-agent-devbox:dev
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent

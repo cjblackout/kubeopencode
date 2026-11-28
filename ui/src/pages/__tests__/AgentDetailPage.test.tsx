@@ -56,7 +56,7 @@ describe('AgentDetailPage', () => {
     });
 
     expect(screen.getByText('Agent Image')).toBeInTheDocument();
-    expect(screen.getByText('ghcr.io/kubeopencode/kubeopencode-agent-opencode:latest')).toBeInTheDocument();
+    expect(screen.getByText('ghcr.io/cjblackout/kubeopencode/kubeadp-agent:2026.11.64')).toBeInTheDocument();
   });
 
   it('shows workspace directory', async () => {

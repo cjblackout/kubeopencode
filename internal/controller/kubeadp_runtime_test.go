@@ -49,7 +49,7 @@ func TestBuildServerDeployment_RunsKubeadpWorker(t *testing.T) {
 		Spec:       kubeopenv1alpha1.AgentSpec{Port: 4096},
 	}
 	cfg := agentConfig{
-		executorImage: "devbox:v1", agentImage: "opencode:v1", kubeadpImage: "kubeadp:v1",
+		kubeadpImage: "kubeadp:v1",
 		workspaceDir: "/workspace",
 		credentials: []kubeopenv1alpha1.Credential{
 			{Name: "key", SecretRef: kubeopenv1alpha1.SecretReference{Name: "s", Key: ptr.To("k")}, Env: ptr.To("MY_API_KEY")},
@@ -62,18 +62,10 @@ func TestBuildServerDeployment_RunsKubeadpWorker(t *testing.T) {
 	}
 	podSpec := d.Spec.Template.Spec
 
-	// Both binaries arrive through init containers.
-	var haveOpencode, haveKubeadp bool
-	for _, ic := range podSpec.InitContainers {
-		switch ic.Name {
-		case "opencode-init":
-			haveOpencode = ic.Image == "opencode:v1"
-		case "kubeadp-init":
-			haveKubeadp = ic.Image == "kubeadp:v1" && strings.Contains(strings.Join(ic.Command, " "), "/tools/kubeadp-agent")
-		}
-	}
-	if !haveOpencode || !haveKubeadp {
-		t.Errorf("init containers: opencode-init=%v kubeadp-init=%v: %+v", haveOpencode, haveKubeadp, podSpec.InitContainers)
+	// By default the kubeadp-agent image runs the worker directly: no init
+	// containers provision /tools, opencode comes from the image itself.
+	if len(podSpec.InitContainers) != 0 {
+		t.Errorf("default server pod must have no init containers, got: %+v", podSpec.InitContainers)
 	}
 
 	var c *corev1.Container
@@ -85,9 +77,12 @@ func TestBuildServerDeployment_RunsKubeadpWorker(t *testing.T) {
 	if c == nil {
 		t.Fatal("server container not found")
 	}
+	if c.Image != "kubeadp:v1" {
+		t.Errorf("server container image = %q, want the kubeadp image", c.Image)
+	}
 
 	script := strings.Join(c.Command, " ")
-	if !strings.Contains(script, "exec /tools/kubeadp-agent worker") || strings.Contains(script, "opencode serve") {
+	if !strings.Contains(script, "exec kubeadp-agent worker") || strings.Contains(script, "opencode serve") {
 		t.Errorf("server command must run the kubeadp-agent worker, got: %s", script)
 	}
 	if !strings.Contains(script, "'/workspace/workspace'") || !strings.Contains(script, "commit -q --allow-empty") {
@@ -111,7 +106,7 @@ func TestBuildServerDeployment_RunsKubeadpWorker(t *testing.T) {
 		"KUBEADP_API_TOKEN_FILE":       KubeadpSecretMountPath + "/" + KubeadpAPITokenKey,
 		"KUBEADP_JOBSET_ROOT_KEY_FILE": KubeadpSecretMountPath + "/" + KubeadpJobsetRootKeyKey,
 		"AGENT_RUN_WORKSPACE_ROOT":     "/workspace",
-		"AGENT_RUN_OPENCODE_PATH":      "/tools/opencode",
+		"AGENT_RUN_OPENCODE_PATH":      "/usr/local/bin/opencode",
 		"AGENT_RUN_API_LISTEN":         "0.0.0.0:4096",
 	}
 	for k, want := range wants {
@@ -148,6 +143,174 @@ func TestBuildServerDeployment_RunsKubeadpWorker(t *testing.T) {
 	}
 	if secretVol == nil || secretVol.Secret == nil || secretVol.Secret.SecretName != "ag"+KubeadpSecretSuffix {
 		t.Errorf("kubeadp Secret volume = %+v", secretVol)
+	}
+}
+
+func TestBuildServerDeployment_ExplicitExecutorUsesKubeadpInit(t *testing.T) {
+	agent := &kubeopenv1alpha1.Agent{
+		ObjectMeta: metav1.ObjectMeta{Name: "ag", Namespace: "ns"},
+		Spec:       kubeopenv1alpha1.AgentSpec{Port: 4096},
+	}
+	cfg := agentConfig{
+		kubeadpImage:          "kubeadp:v1",
+		executorImage:         "devbox:v1",
+		executorImageExplicit: true,
+		workspaceDir:          "/workspace",
+	}
+	d := BuildServerDeployment(agent, cfg, defaultSystemConfig(), nil, nil, nil, nil, nil)
+	if d == nil {
+		t.Fatal("nil deployment")
+	}
+	podSpec := d.Spec.Template.Spec
+
+	// An explicit executorImage provisions /tools through the single kubeadp-init
+	// container: it copies kubeadp-agent, agent-run and opencode.
+	if len(podSpec.InitContainers) != 1 || podSpec.InitContainers[0].Name != "kubeadp-init" {
+		t.Fatalf("expected a single kubeadp-init init container, got: %+v", podSpec.InitContainers)
+	}
+	icCmd := strings.Join(podSpec.InitContainers[0].Command, " ")
+	if podSpec.InitContainers[0].Image != "kubeadp:v1" ||
+		!strings.Contains(icCmd, "/tools/kubeadp-agent") ||
+		!strings.Contains(icCmd, "/tools/opencode") {
+		t.Errorf("kubeadp-init must copy kubeadp-agent, agent-run and opencode to /tools from the kubeadp image: %+v", podSpec.InitContainers[0])
+	}
+
+	var c *corev1.Container
+	for i := range podSpec.Containers {
+		if podSpec.Containers[i].Name == ServerContainerName {
+			c = &podSpec.Containers[i]
+		}
+	}
+	if c == nil {
+		t.Fatal("server container not found")
+	}
+	if c.Image != "devbox:v1" {
+		t.Errorf("server container image = %q, want the explicit executor image", c.Image)
+	}
+	script := strings.Join(c.Command, " ")
+	if !strings.Contains(script, "exec /tools/kubeadp-agent worker") {
+		t.Errorf("explicit executor server must run the worker from /tools, got: %s", script)
+	}
+	if got, ok := envValue(c.Env, "AGENT_RUN_OPENCODE_PATH"); !ok || got != "/tools/opencode" {
+		t.Errorf("AGENT_RUN_OPENCODE_PATH = %q (present=%v), want /tools/opencode", got, ok)
+	}
+}
+
+func TestBuildServerDeployment_SessionPersistencePointsHomeAtSessionVolume(t *testing.T) {
+	agent := &kubeopenv1alpha1.Agent{
+		ObjectMeta: metav1.ObjectMeta{Name: "ag", Namespace: "ns"},
+		Spec: kubeopenv1alpha1.AgentSpec{
+			Port: 4096,
+			Persistence: &kubeopenv1alpha1.PersistenceConfig{
+				Sessions: &kubeopenv1alpha1.VolumePersistence{Size: "1Gi"},
+			},
+		},
+	}
+	cfg := agentConfig{
+		kubeadpImage:  "kubeadp:v1",
+		workspaceDir:  "/workspace",
+		executorImage: "test-executor:v1.0.0",
+	}
+	d := BuildServerDeployment(agent, cfg, defaultSystemConfig(), nil, nil, nil, nil, nil)
+	if d == nil {
+		t.Fatal("nil deployment")
+	}
+	podSpec := d.Spec.Template.Spec
+
+	var c *corev1.Container
+	for i := range podSpec.Containers {
+		if podSpec.Containers[i].Name == ServerContainerName {
+			c = &podSpec.Containers[i]
+		}
+	}
+	if c == nil {
+		t.Fatal("server container not found")
+	}
+
+	// The session PVC is mounted and AGENT_RUN_STATE_ROOT points at it.
+	var foundStateEnv bool
+	for _, env := range c.Env {
+		if env.Name == "AGENT_RUN_STATE_ROOT" && env.Value == ServerSessionMountPath {
+			foundStateEnv = true
+		}
+	}
+	if !foundStateEnv {
+		t.Errorf("AGENT_RUN_STATE_ROOT must point at ServerSessionMountPath with session persistence")
+	}
+	var foundHome bool
+	for _, env := range c.Env {
+		if env.Name == "HOME" && strings.HasPrefix(env.Value, ServerSessionMountPath) {
+			foundHome = true
+		}
+	}
+	if !foundHome {
+		t.Errorf("HOME must live on the session volume with session persistence, got HOME=%+v", c.Env)
+	}
+	var foundSandboxHome bool
+	for _, env := range c.Env {
+		if env.Name == "KUBEADP_SANDBOX_HOME" && strings.HasPrefix(env.Value, ServerSessionMountPath) {
+			foundSandboxHome = true
+		}
+	}
+	if !foundSandboxHome {
+		t.Errorf("KUBEADP_SANDBOX_HOME must live on the session volume with session persistence")
+	}
+
+	// The session PVC volume + mount exist.
+	var foundVol bool
+	for _, vol := range podSpec.Volumes {
+		if vol.Name == ServerSessionVolumeName && vol.PersistentVolumeClaim != nil {
+			foundVol = true
+		}
+	}
+	if !foundVol {
+		t.Error("session PVC volume not found")
+	}
+	var foundMount bool
+	for _, mount := range c.VolumeMounts {
+		if mount.Name == ServerSessionVolumeName && mount.MountPath == ServerSessionMountPath {
+			foundMount = true
+		}
+	}
+	if !foundMount {
+		t.Error("session PVC mount not found")
+	}
+
+	// The command pre-creates the home dir on the PVC. The path is shell-escaped
+	// (quoted) by workspaceInitScript, exactly like the workspace dir.
+	script := strings.Join(c.Command, " ")
+	if !strings.Contains(script, "mkdir -p '"+ServerSessionHomePath+"'") {
+		t.Errorf("server command must pre-create the session home dir, got: %s", script)
+	}
+}
+
+func TestBuildServerDeployment_NoPersistenceKeepsTempHome(t *testing.T) {
+	agent := &kubeopenv1alpha1.Agent{
+		ObjectMeta: metav1.ObjectMeta{Name: "ag", Namespace: "ns"},
+		Spec:       kubeopenv1alpha1.AgentSpec{Port: 4096},
+	}
+	cfg := agentConfig{
+		kubeadpImage:  "kubeadp:v1",
+		workspaceDir:  "/workspace",
+		executorImage: "test-executor:v1.0.0",
+	}
+	d := BuildServerDeployment(agent, cfg, defaultSystemConfig(), nil, nil, nil, nil, nil)
+	if d == nil {
+		t.Fatal("nil deployment")
+	}
+	var c *corev1.Container
+	for i := range d.Spec.Template.Spec.Containers {
+		if d.Spec.Template.Spec.Containers[i].Name == ServerContainerName {
+			c = &d.Spec.Template.Spec.Containers[i]
+		}
+	}
+	if c == nil {
+		t.Fatal("server container not found")
+	}
+	for _, env := range c.Env {
+		if env.Name == "HOME" && env.Value != DefaultHomeDir {
+			t.Errorf("HOME must be the default %q without persistence, got %q", DefaultHomeDir, env.Value)
+		}
 	}
 }
 

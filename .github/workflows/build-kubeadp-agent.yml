@@ -67,6 +67,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       version: ${{ steps.calc.outputs.version }}
+      opencode: ${{ steps.calc.outputs.opencode }}
     steps:
       - uses: actions/checkout@v4
       - id: calc
@@ -107,6 +108,9 @@ jobs:
             VERSION="${MONTH}.$((MAX_STABLE + 1))"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # The opencode engine version pinned in agents/Makefile, passed to the
+          # opencode-downloader stage of docker/kubeadp-agent/Dockerfile.
+          echo "opencode=$(grep '^OPENCODE_VERSION' agents/Makefile | head -1 | sed 's/.*?= *//')" >> "$GITHUB_OUTPUT"
           echo "Computed kubeadp-agent version: ${VERSION}"
 
   build:
@@ -227,6 +231,7 @@ jobs:
           echo "Building final image (earlier stages served from BuildKit cache)..."
           retry docker build --progress=plain --network=host \
             --build-arg BUILD_SHA=${{ github.sha }} \
+            --build-arg OPENCODE_VERSION=${{ needs.version.outputs.opencode }} \
             -t "$IMAGE" -f docker/kubeadp-agent/Dockerfile .
           # Smoke test BEFORE the push: runs every installed tool's --version
           # once (plus a bogus-role exit-2 check and the ttyd serve test) and
